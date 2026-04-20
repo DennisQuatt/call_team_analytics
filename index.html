@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 21 – April 19, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Account Managers &nbsp;|&nbsp; Source: Snowflake DWH (FCT_CALLS + DIM_DEALS)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 20, 2026 at 13:21 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 20, 2026 at 13:30 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -289,6 +289,9 @@
 
 <h2>Weekly Meeting Volume — per AM</h2>
 <div class="chart-box full" style="margin-bottom:20px"><canvas id="meetingsChart" style="max-height:420px"></canvas></div>
+
+<h2>Quote Flow — Sent vs Signed <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(daily totals across all selected AMs, window follows the 30d/MTD toggle above)</span></h2>
+<div class="chart-box full" style="margin-bottom:20px"><canvas id="quoteFlowChart" style="max-height:420px"></canvas></div>
 
 <h2>Activity Heatmap — Calls + Meetings per Week</h2>
 <div class="caveat" style="margin:10px 0">
@@ -415,7 +418,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 20, 2026 at 13:21 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
+  Last updated April 20, 2026 at 13:30 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
 </h2>
 
 </div>
@@ -694,9 +697,9 @@ function renderLeaderboards() {
   renderLeaderboard("lb-avgdur",   rank("avgDurMin"),     v => v.toFixed(1),   "#2980b9");
 }
 
-let trendChart, meetingsChart, scatterChart, rateChart;
+let trendChart, meetingsChart, scatterChart, rateChart, quoteFlowChart;
 function destroyCharts() {
-  [trendChart, meetingsChart, scatterChart, rateChart].forEach(c => { if (c) c.destroy(); });
+  [trendChart, meetingsChart, scatterChart, rateChart, quoteFlowChart].forEach(c => { if (c) c.destroy(); });
 }
 
 function renderCharts() {
@@ -781,6 +784,100 @@ function renderCharts() {
       plugins: { legend: {display:false} },
       scales: { x: { beginAtZero:true, title:{display:true, text:"% signed / created"} } }
     }
+  });
+
+  // ===== Quote Flow chart: daily sent vs signed across filtered AMs, scoped by 30d/MTD toggle =====
+  renderQuoteFlowChart(F);
+}
+
+function renderQuoteFlowChart(F) {
+  if (!TOTALS || !TOTALS.call_daily) return;
+  // Window bounds follow the 30d/MTD toggle
+  const isMtd = callTableWindow === "month";
+  const start = isMtd ? TOTALS.pace.month_start : TOTALS.pace.window_start;
+  const end   = TOTALS.pace.today;
+
+  // Build a sorted list of dates in the window (inclusive start, exclusive end)
+  const dates = [];
+  const d = new Date(start);
+  const endD = new Date(end);
+  while (d < endD) {
+    dates.push(d.toISOString().slice(0,10));
+    d.setDate(d.getDate() + 1);
+  }
+
+  // Aggregate sent and signed per day across filtered AMs
+  const sentByDay = {}, signedByDay = {}, revenueByDay = {};
+  dates.forEach(day => { sentByDay[day] = 0; signedByDay[day] = 0; revenueByDay[day] = 0; });
+  F.forEach(p => {
+    const daily = TOTALS.call_daily[p.name] || {};
+    for (const day in daily) {
+      if (day >= start && day < end) {
+        sentByDay[day]    += daily[day].sent_cnt   || 0;
+        signedByDay[day]  += daily[day].signed_cnt || 0;
+        revenueByDay[day] += daily[day].signed_val || 0;
+      }
+    }
+  });
+
+  // Short label formatter: "Apr 6" etc.
+  const labels = dates.map(day => {
+    const dt = new Date(day);
+    return dt.toLocaleDateString("en-GB", {month: "short", day: "numeric"});
+  });
+
+  const sentSeries   = dates.map(d => sentByDay[d]);
+  const signedSeries = dates.map(d => signedByDay[d]);
+  const revSeries    = dates.map(d => Math.round(revenueByDay[d] / 1000)); // €K
+
+  quoteFlowChart = new Chart(document.getElementById("quoteFlowChart"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Quotes Sent",
+          data: sentSeries,
+          borderColor: "#3498db",
+          backgroundColor: "rgba(52,152,219,0.1)",
+          tension: 0.3, pointRadius: 3, borderWidth: 2, fill: true, yAxisID: "y",
+        },
+        {
+          label: "Quotes Signed",
+          data: signedSeries,
+          borderColor: "#27ae60",
+          backgroundColor: "rgba(39,174,96,0.15)",
+          tension: 0.3, pointRadius: 3, borderWidth: 2, fill: true, yAxisID: "y",
+        },
+        {
+          label: "Signed Revenue (€K ex-VAT)",
+          data: revSeries,
+          borderColor: "#f39c12",
+          backgroundColor: "rgba(243,156,18,0.08)",
+          tension: 0.3, pointRadius: 2, borderWidth: 2, borderDash: [4,3], fill: false, yAxisID: "y1",
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top" },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed.y;
+              if (ctx.dataset.label.includes("Revenue")) return ` ${ctx.dataset.label}: €${v}K`;
+              return ` ${ctx.dataset.label}: ${v}`;
+            },
+          },
+        },
+      },
+      scales: {
+        y:  { beginAtZero: true, position: "left",  title: { display: true, text: "Quotes (count)" } },
+        y1: { beginAtZero: true, position: "right", title: { display: true, text: "Revenue (€K)" }, grid: { drawOnChartArea: false } },
+      },
+    },
   });
 }
 
