@@ -169,7 +169,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 21 – April 19, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Account Managers &nbsp;|&nbsp; Source: Snowflake DWH (FCT_CALLS + DIM_DEALS)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 20, 2026 at 11:00 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 20, 2026 at 11:24 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -247,6 +247,14 @@
 
 <div class="caveat">
   <strong>Methodology:</strong> Calls from <code>FCT_CALLS</code> joined on agent email. Deal metrics from <code>DIM_DEALS</code> (Consumer Orders pipeline, real deals only). "Created" counts deals whose <em>creation date</em> falls in the window; "signed"/"converted"/"lost" count deals whose respective event date falls in the window. Meetings proxy uses <code>DATE_APPOINTMENT_FIRST</code>.
+</div>
+
+<div style="display:flex;align-items:center;gap:15px;margin:15px 0 20px 0;flex-wrap:wrap">
+  <div class="team-switch" id="callTableSwitch">
+    <button data-callwin="total" class="active" onclick="switchCallWindow('total')">All 30 Days</button>
+    <button data-callwin="month"               onclick="switchCallWindow('month')">Month-to-Date</button>
+  </div>
+  <div id="callWindowLabel" style="color:var(--gray);font-size:0.9rem;font-weight:600"></div>
 </div>
 
 <h2>Per-AM Comparison <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(click column header to sort)</span></h2>
@@ -406,7 +414,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 20, 2026 at 11:00 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
+  Last updated April 20, 2026 at 11:24 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
 </h2>
 
 </div>
@@ -424,11 +432,79 @@ let selected = new Set(PEOPLE.map(p => p.name));
 let selectedWeeks = new Set(HOURLY_WEEKS);
 let sortKey = "signedVal";
 let sortDir = "desc";
+let callTableWindow = "total";  // "total" = 30d | "month" = MTD
 
 const eur = v => v >= 1e6 ? "€" + (v/1e6).toFixed(2) + "M" : v >= 1e3 ? "€" + Math.round(v/1e3) + "K" : "€" + Math.round(v);
 const fmt = v => v.toLocaleString();
 
-function filtered() { return PEOPLE.filter(p => selected.has(p.name)); }
+// Build a view of PEOPLE where metrics reflect the selected window (30d or MTD).
+// For 30d: returns PEOPLE as-is. For MTD: overlays daily data from TOTALS.call_daily.
+function peopleForWindow() {
+  if (callTableWindow === "total" || !TOTALS || !TOTALS.call_daily) return PEOPLE;
+  const monthStart = TOTALS.pace.month_start;
+  const today = TOTALS.pace.today;
+  const workDaysMTD = Math.max(1, TOTALS.pace.work_days_elapsed);
+  return PEOPLE.map(p => {
+    const daily = TOTALS.call_daily[p.name] || {};
+    const agg = {calls:0, talk_min:0, signed_cnt:0, signed_val:0, sent_cnt:0};
+    for (const d in daily) {
+      if (d >= monthStart && d < today) {
+        agg.calls      += daily[d].calls      || 0;
+        agg.talk_min   += daily[d].talk_min   || 0;
+        agg.signed_cnt += daily[d].signed_cnt || 0;
+        agg.signed_val += daily[d].signed_val || 0;
+        agg.sent_cnt   += daily[d].sent_cnt   || 0;
+      }
+    }
+    // Preserve identity fields; overlay MTD metrics on the rest
+    return {
+      ...p,
+      totalCalls: agg.calls,
+      talkMin:    agg.talk_min,
+      sentCnt:    agg.sent_cnt,
+      sentValEx:  p.sentValEx, // we don't have MTD-scoped sent value; leave as 30d (sub-label only)
+      signedCnt:  agg.signed_cnt,
+      signedVal:  agg.signed_val,
+      convertedCnt: p.convertedCnt,  // no daily data; leave as-is for table display
+      convertedVal: p.convertedVal,
+      lostCnt:    p.lostCnt,
+      sentToSigned: agg.sent_cnt > 0 ? (agg.signed_cnt / agg.sent_cnt * 100) : 0,
+      createdCnt: p.createdCnt, createdVal: p.createdVal,  // keep 30d
+      callsPerDay: agg.calls / workDaysMTD,
+      // mtd* fields are the same as MTD scope above
+      mtdSignedCnt: agg.signed_cnt,
+      mtdSignedEx:  agg.signed_val,
+      mtdSignedIncl: Math.round(agg.signed_val * 1.21),
+      avgDurMin: agg.calls > 0 ? (agg.talk_min / agg.calls) : 0,
+      // weekly sparklines stay as the original 30d shape
+    };
+  });
+}
+
+function filtered() { return peopleForWindow().filter(p => selected.has(p.name)); }
+
+function switchCallWindow(which) {
+  callTableWindow = which;
+  document.querySelectorAll("#callTableSwitch button").forEach(b => {
+    b.classList.toggle("active", b.dataset.callwin === which);
+  });
+  updateCallWindowLabel();
+  renderKPIs();
+  renderTable();
+  renderLeaderboards();
+  renderCharts();
+}
+
+function updateCallWindowLabel() {
+  if (!TOTALS || !TOTALS.pace) return;
+  const el = document.getElementById("callWindowLabel");
+  if (!el) return;
+  if (callTableWindow === "total") {
+    el.textContent = `All 30 Days: ${TOTALS.pace.window_start} → ${TOTALS.pace.today}`;
+  } else {
+    el.textContent = `Month-to-Date: ${TOTALS.pace.month_start} → ${TOTALS.pace.today} (${TOTALS.pace.work_days_elapsed} work days)`;
+  }
+}
 function median(arr) {
   if (!arr.length) return 0;
   const s = [...arr].sort((a,b)=>a-b);
@@ -1571,6 +1647,7 @@ function renderSupportAll() {
 
 renderAll();
 renderTotals();
+updateCallWindowLabel();
 </script>
 </body>
 </html>
