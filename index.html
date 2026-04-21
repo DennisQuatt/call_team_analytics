@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 22 – April 20, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Account Managers &nbsp;|&nbsp; Source: Snowflake DWH (FCT_CALLS + DIM_DEALS)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 21, 2026 at 13:53 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 21, 2026 at 14:21 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -378,12 +378,12 @@
 <h2>Weekly Call Volume — per Representative</h2>
 <div class="chart-box full" style="margin-bottom:20px"><canvas id="supCallsChart" style="max-height:420px"></canvas></div>
 
-<h2>Weekly Meeting Volume — per Representative</h2>
+<h2>Weekly Meetings Scheduled by Rep</h2>
 <div class="chart-box full" style="margin-bottom:20px"><canvas id="supMeetingsChart" style="max-height:420px"></canvas></div>
 
-<h2>Weekly HV Planning — per Representative</h2>
+<h2>Weekly HVs Scheduled by Rep</h2>
 <div class="caveat" style="margin:10px 0">
-  Home visits scheduled (<code>HOME_VISIT_SCHEDULED_DATE</code>) per representative per week. This team rarely schedules HVs — if the chart looks empty, it's because there's almost no data.
+  Deals entering <code>DATE_ENTERED_WPS6HV</code> per week, credited to the qualification-call owner (<code>QUALIFICATION_CALL_OWNER</code>) — i.e. the support rep who handled the qualifying call that led to the HV being scheduled.
 </div>
 <div class="chart-box full" style="margin-bottom:20px"><canvas id="supHvsChart" style="max-height:420px"></canvas></div>
 
@@ -426,7 +426,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 21, 2026 at 13:53 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
+  Last updated April 21, 2026 at 14:21 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
 </h2>
 
 </div>
