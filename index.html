@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 22 – April 20, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Account Managers &nbsp;|&nbsp; Source: Snowflake DWH (FCT_CALLS + DIM_DEALS)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 21, 2026 at 09:59 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 21, 2026 at 10:14 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -359,6 +359,14 @@
   <strong>Sales Support methodology:</strong> Calls from <code>FCT_CALLS</code> (Aircall, all directions). Unanswered = <code>ANSWERED_AT IS NULL</code>. Meetings = deals entering <code>DATE_ENTERED_WPS7</code> attributed to <code>QUALIFICATION_CALL_OWNER</code> (i.e. the support agent who handled the qualification call that led to the meeting). HVs = deals entering <code>DATE_ENTERED_WPS6HV</code> with the same qualification-owner attribution. All figures are activity-only (no pipeline/revenue metrics for this team).
 </div>
 
+<div style="display:flex;align-items:center;gap:15px;margin:15px 0 20px 0;flex-wrap:wrap">
+  <div class="team-switch" id="supTableSwitch">
+    <button data-supwin="total" class="active" onclick="switchSupWindow('total')">All 30 Days</button>
+    <button data-supwin="month"               onclick="switchSupWindow('month')">Month-to-Date</button>
+  </div>
+  <div id="supWindowLabel" style="color:var(--gray);font-size:0.9rem;font-weight:600"></div>
+</div>
+
 <h2>Per-AM Comparison <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(click column header to sort)</span></h2>
 <div style="overflow-x:auto">
 <table class="compare" id="supCompareTable">
@@ -418,7 +426,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 21, 2026 at 09:59 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
+  Last updated April 21, 2026 at 10:14 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
 </h2>
 
 </div>
@@ -1044,6 +1052,75 @@ let supSelected = new Set(SUP_PEOPLE.map(p => p.name));
 let supSelectedWeeks = new Set(HOURLY_WEEKS);
 let supSortKey = "totalCalls";
 let supSortDir = "desc";
+let supTableWindow = "total";  // "total" = 30d | "month" = MTD
+
+// Build a view of SUP_PEOPLE where metrics reflect the selected window (30d or MTD).
+// For 30d: returns SUP_PEOPLE as-is. For MTD: overlays daily data from TOTALS.support_daily.
+// Note: outbound/inbound/missed/answered come from 30d call summary and aren't kept per-day,
+// so in MTD mode we proportionally scale them using the calls ratio (imperfect but consistent).
+function supPeopleForWindow() {
+  if (supTableWindow === "total" || !TOTALS || !TOTALS.support_daily) return SUP_PEOPLE;
+  const monthStart = TOTALS.pace.month_start;
+  const today = TOTALS.pace.today;
+  const workDaysMTD = Math.max(1, TOTALS.pace.work_days_elapsed);
+  return SUP_PEOPLE.map(p => {
+    const daily = TOTALS.support_daily[p.name] || {};
+    const agg = {calls:0, talk_min:0, meetings:0, hvs:0};
+    for (const d in daily) {
+      if (d >= monthStart && d < today) {
+        agg.calls    += daily[d].calls    || 0;
+        agg.talk_min += daily[d].talk_min || 0;
+        agg.meetings += daily[d].meetings || 0;
+        agg.hvs      += daily[d].hvs      || 0;
+      }
+    }
+    // Scale call-breakdown metrics by the ratio of MTD calls to 30d calls.
+    const ratio = p.totalCalls > 0 ? agg.calls / p.totalCalls : 0;
+    const outbound = Math.round(p.outbound * ratio);
+    const inbound  = Math.round(p.inbound  * ratio);
+    const missed   = Math.round(p.missed   * ratio);
+    const answered = Math.round(p.answered * ratio);
+    return {
+      ...p,
+      totalCalls: agg.calls,
+      outbound,
+      inbound,
+      missed,
+      answered,
+      inboundPct: agg.calls > 0 ? (inbound / agg.calls * 100) : 0,
+      missedPct:  agg.calls > 0 ? (missed  / agg.calls * 100) : 0,
+      talkMin:    agg.talk_min,
+      avgDurMin:  answered > 0 ? (agg.talk_min / answered) : 0,
+      callsPerDay: agg.calls / workDaysMTD,
+      talkPerDay:  agg.talk_min / workDaysMTD,
+      meetingsTotal: agg.meetings,
+      hvsTotal:      agg.hvs,
+      // weekly sparklines stay as the original 30d shape
+    };
+  });
+}
+
+function switchSupWindow(which) {
+  supTableWindow = which;
+  document.querySelectorAll("#supTableSwitch button").forEach(b => {
+    b.classList.toggle("active", b.dataset.supwin === which);
+  });
+  updateSupWindowLabel();
+  renderSupKPIs();
+  renderSupTable();
+  renderSupCharts();
+}
+
+function updateSupWindowLabel() {
+  if (!TOTALS || !TOTALS.pace) return;
+  const el = document.getElementById("supWindowLabel");
+  if (!el) return;
+  if (supTableWindow === "total") {
+    el.textContent = `All 30 Days: ${TOTALS.pace.window_start} → ${TOTALS.pace.today}`;
+  } else {
+    el.textContent = `Month-to-Date: ${TOTALS.pace.month_start} → ${TOTALS.pace.today} (${TOTALS.pace.work_days_elapsed} work days)`;
+  }
+}
 let currentTeam = "totals";   // "totals" | "call" | "support"
 let currentProdView = "weekly";
 
@@ -1449,7 +1526,7 @@ function switchProdView(which) {
   document.getElementById("supProdDaily").style.display  = (which === "daily")  ? "" : "none";
 }
 
-function supFiltered() { return SUP_PEOPLE.filter(p => supSelected.has(p.name)); }
+function supFiltered() { return supPeopleForWindow().filter(p => supSelected.has(p.name)); }
 
 function renderSupFilterBar() {
   const row = document.getElementById("supFilterRow");
@@ -1501,6 +1578,13 @@ function supToggleWeek(w) {
 function supWeeksSelectAll() { supSelectedWeeks = new Set(HOURLY_WEEKS); renderSupHourlyHeatmap(); }
 function supWeeksSelectNone() { supSelectedWeeks = new Set(); renderSupHourlyHeatmap(); }
 
+function supWorkDays() {
+  if (supTableWindow === "month" && TOTALS && TOTALS.pace) {
+    return Math.max(1, TOTALS.pace.work_days_elapsed);
+  }
+  return WORKING_DAYS;
+}
+
 function renderSupKPIs() {
   const F = supFiltered();
   if (F.length === 0) {
@@ -1508,6 +1592,7 @@ function renderSupKPIs() {
       '<div class="empty-state" style="grid-column:1/-1"><span class="ic">👥</span>Select one or more AMs above to see the data.</div>';
     return;
   }
+  const wd = supWorkDays();
   const t = {
     calls: F.reduce((s,p)=>s+p.totalCalls,0),
     out:   F.reduce((s,p)=>s+p.outbound,0),
@@ -1521,7 +1606,7 @@ function renderSupKPIs() {
   const avgDurMin = t.ans > 0 ? (t.talk / t.ans) : 0;
   const missPct = t.calls > 0 ? (t.miss / t.calls) * 100 : 0;
   document.getElementById("supKpiCards").innerHTML = `
-    <div class="card green"><div class="value">${fmt(t.out)}</div><div class="label">Outbound Calls</div><div class="sub">${(t.out/WORKING_DAYS).toFixed(0)}/day avg</div></div>
+    <div class="card green"><div class="value">${fmt(t.out)}</div><div class="label">Outbound Calls</div><div class="sub">${(t.out/wd).toFixed(0)}/day avg</div></div>
     <div class="card blue"><div class="value">${fmt(t.inb)}</div><div class="label">Inbound Calls</div><div class="sub">${t.calls?((t.inb/t.calls)*100).toFixed(0):0}% of total</div></div>
     <div class="card red"><div class="value">${fmt(t.miss)}</div><div class="label">Unanswered Calls</div><div class="sub">inbound missed</div></div>
     <div class="card red"><div class="value">${missPct.toFixed(1)}%</div><div class="label">Unanswered Rate</div><div class="sub">of all calls</div></div>
@@ -1556,6 +1641,7 @@ function renderSupTable() {
   }
   const medCalls = median(F.map(p=>p.totalCalls));
   const medTalk  = median(F.map(p=>p.talkMin));
+  const wd = supWorkDays();
 
   document.getElementById("supCompareHead").innerHTML = SUP_COLS.map(c => {
     const ind = c.sortable && c.key === supSortKey ? ' <span class="sort-ind">' + (supSortDir==="asc"?"▲":"▼") + '</span>' : '';
@@ -1579,7 +1665,7 @@ function renderSupTable() {
         <td class="cell-gray"><span class="big">${p.inboundPct.toFixed(0)}%</span><span class="small">inbound share</span></td>
         <td class="cell-gray"><span class="big">${p.missed}</span><span class="small">of ${p.totalCalls} calls</span></td>
         <td class="cell-gray"><span class="big">${p.missedPct.toFixed(1)}%</span><span class="small">unanswered rate</span></td>
-        <td class="cell-gray"><span class="big">${p.meetingsTotal}</span><span class="small">${(p.meetingsTotal/WORKING_DAYS).toFixed(1)}/day</span></td>
+        <td class="cell-gray"><span class="big">${p.meetingsTotal}</span><span class="small">${(p.meetingsTotal/wd).toFixed(1)}/day</span></td>
         <td class="cell-gray"><span class="big">${p.hvsTotal}</span><span class="small">in window</span></td>
         <td class="${clsSigned(p.talkMin, medTalk)}"><span class="big">${fmt(p.talkMin)}</span><span class="small">${p.talkPerDay}/day</span></td>
         <td class="cell-gray"><span class="big">${p.avgDurMin.toFixed(1)}</span><span class="small">answered</span></td>
@@ -1754,6 +1840,7 @@ function renderSupportAll() {
 renderAll();
 renderTotals();
 updateCallWindowLabel();
+updateSupWindowLabel();
 </script>
 </body>
 </html>
