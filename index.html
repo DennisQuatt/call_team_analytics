@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 22 – April 20, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Account Managers &nbsp;|&nbsp; Source: Snowflake DWH (FCT_CALLS + DIM_DEALS)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 21, 2026 at 22:45 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 21, 2026 at 22:49 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -183,8 +183,8 @@
 
 <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;flex-wrap:wrap">
   <div class="team-switch" id="timeSwitch">
-    <button data-win="total" class="active" onclick="switchWindow('total')">All 30 Days</button>
-    <button data-win="month"               onclick="switchWindow('month')">Month-to-Date</button>
+    <button data-win="total"                onclick="switchWindow('total')">All 30 Days</button>
+    <button data-win="month" class="active" onclick="switchWindow('month')">Month-to-Date</button>
     <button data-win="week"                onclick="switchWindow('week')">Last 7 Days</button>
     <button data-win="day"                 onclick="switchWindow('day')">Yesterday</button>
   </div>
@@ -252,8 +252,8 @@
 
 <div style="display:flex;align-items:center;gap:15px;margin:15px 0 20px 0;flex-wrap:wrap">
   <div class="team-switch" id="callTableSwitch">
-    <button data-callwin="total" class="active" onclick="switchCallWindow('total')">All 30 Days</button>
-    <button data-callwin="month"               onclick="switchCallWindow('month')">Month-to-Date</button>
+    <button data-callwin="total"                onclick="switchCallWindow('total')">All 30 Days</button>
+    <button data-callwin="month" class="active" onclick="switchCallWindow('month')">Month-to-Date</button>
   </div>
   <div id="callWindowLabel" style="color:var(--gray);font-size:0.9rem;font-weight:600"></div>
 </div>
@@ -361,8 +361,8 @@
 
 <div style="display:flex;align-items:center;gap:15px;margin:15px 0 20px 0;flex-wrap:wrap">
   <div class="team-switch" id="supTableSwitch">
-    <button data-supwin="total" class="active" onclick="switchSupWindow('total')">All 30 Days</button>
-    <button data-supwin="month"               onclick="switchSupWindow('month')">Month-to-Date</button>
+    <button data-supwin="total"                onclick="switchSupWindow('total')">All 30 Days</button>
+    <button data-supwin="month" class="active" onclick="switchSupWindow('month')">Month-to-Date</button>
   </div>
   <div id="supWindowLabel" style="color:var(--gray);font-size:0.9rem;font-weight:600"></div>
 </div>
@@ -426,7 +426,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 21, 2026 at 22:45 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
+  Last updated April 21, 2026 at 22:49 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
 </h2>
 
 </div>
@@ -444,7 +444,7 @@ let selected = new Set(PEOPLE.map(p => p.name));
 let selectedWeeks = new Set(HOURLY_WEEKS);
 let sortKey = "signedVal";
 let sortDir = "desc";
-let callTableWindow = "total";  // "total" = 30d | "month" = MTD
+let callTableWindow = "month";  // default: MTD ("total" = 30d)
 
 const eur = v => v >= 1e6 ? "€" + (v/1e6).toFixed(2) + "M" : v >= 1e3 ? "€" + Math.round(v/1e3) + "K" : "€" + Math.round(v);
 const fmt = v => v.toLocaleString();
@@ -1052,7 +1052,7 @@ let supSelected = new Set(SUP_PEOPLE.map(p => p.name));
 let supSelectedWeeks = new Set(HOURLY_WEEKS);
 let supSortKey = "totalCalls";
 let supSortDir = "desc";
-let supTableWindow = "total";  // "total" = 30d | "month" = MTD
+let supTableWindow = "month";  // default: MTD ("total" = 30d)
 
 // Build a view of SUP_PEOPLE where metrics reflect the selected window (30d or MTD).
 // For 30d: returns SUP_PEOPLE as-is. For MTD: overlays daily data from TOTALS.support_daily.
@@ -1137,7 +1137,7 @@ function switchTeam(which) {
 }
 
 // ---------- Performance Totals rendering ----------
-let currentWindow = "total";  // "total" | "month" | "week" | "day"
+let currentWindow = "month";  // default: MTD. values: "total" | "month" | "week" | "day"
 
 function switchWindow(which) {
   currentWindow = which;
