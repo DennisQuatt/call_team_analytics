@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 22 – April 20, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Account Managers &nbsp;|&nbsp; Source: Snowflake DWH (FCT_CALLS + DIM_DEALS)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 21, 2026 at 10:31 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 21, 2026 at 13:53 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -426,7 +426,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 21, 2026 at 10:31 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
+  Last updated April 21, 2026 at 13:53 CET &nbsp;|&nbsp; Source: Snowflake DWH.MARTS (FCT_CALLS, DIM_DEALS)
 </h2>
 
 </div>
@@ -1573,10 +1573,11 @@ function renderSupWeekFilterBar() {
 }
 function supToggleWeek(w) {
   if (supSelectedWeeks.has(w)) supSelectedWeeks.delete(w); else supSelectedWeeks.add(w);
+  renderSupWeekFilterBar();
   renderSupHourlyHeatmap();
 }
-function supWeeksSelectAll() { supSelectedWeeks = new Set(HOURLY_WEEKS); renderSupHourlyHeatmap(); }
-function supWeeksSelectNone() { supSelectedWeeks = new Set(); renderSupHourlyHeatmap(); }
+function supWeeksSelectAll() { supSelectedWeeks = new Set(HOURLY_WEEKS); renderSupWeekFilterBar(); renderSupHourlyHeatmap(); }
+function supWeeksSelectNone() { supSelectedWeeks = new Set(); renderSupWeekFilterBar(); renderSupHourlyHeatmap(); }
 
 function supWorkDays() {
   if (supTableWindow === "month" && TOTALS && TOTALS.pace) {
@@ -1610,8 +1611,8 @@ function renderSupKPIs() {
     <div class="card blue"><div class="value">${fmt(t.inb)}</div><div class="label">Inbound Calls</div><div class="sub">${t.calls?((t.inb/t.calls)*100).toFixed(0):0}% of total</div></div>
     <div class="card red"><div class="value">${fmt(t.miss)}</div><div class="label">Unanswered Calls</div><div class="sub">inbound missed</div></div>
     <div class="card red"><div class="value">${missPct.toFixed(1)}%</div><div class="label">Unanswered Rate</div><div class="sub">of all calls</div></div>
-    <div class="card yellow"><div class="value">${t.hvs}</div><div class="label">HVs Scheduled</div><div class="sub">WPS6HV by qual-call owner</div></div>
-    <div class="card green"><div class="value">${t.meet}</div><div class="label">Meetings Booked</div><div class="sub">WPS7 by qual-call owner</div></div>
+    <div class="card yellow"><div class="value">${t.hvs}</div><div class="label">HVs Scheduled by Rep</div><div class="sub">WPS6HV by qual-call owner</div></div>
+    <div class="card green"><div class="value">${t.meet}</div><div class="label">Meetings Scheduled by Rep</div><div class="sub">WPS7 by qual-call owner</div></div>
     <div class="card green"><div class="value">${fmt(t.talk)}</div><div class="label">Total Talk Minutes</div><div class="sub">${Math.round(t.talk/60)} total hours</div></div>
     <div class="card blue"><div class="value">${avgDurMin.toFixed(1)}</div><div class="label">Avg Call Minutes</div><div class="sub">answered calls only</div></div>
   `;
@@ -1625,8 +1626,8 @@ const SUP_COLS = [
   {key: "inboundPct",    label: "Inbound %",       sortable: true},
   {key: "missed",        label: "Unanswered",      sortable: true},
   {key: "missedPct",     label: "Unanswered %",    sortable: true},
-  {key: "meetingsTotal", label: "Meetings",        sortable: true},
-  {key: "hvsTotal",      label: "HVs Scheduled",   sortable: true},
+  {key: "meetingsTotal", label: "Meetings Scheduled by Rep", sortable: true},
+  {key: "hvsTotal",      label: "HVs Scheduled by Rep",      sortable: true},
   {key: "talkMin",       label: "Talk Time (min)", sortable: true},
   {key: "avgDurMin",     label: "Avg Call (min)",  sortable: true},
 ];
