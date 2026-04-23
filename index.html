@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 24 – April 22, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 11:47 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 12:03 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -549,7 +549,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 23, 2026 at 11:47 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 23, 2026 at 12:03 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -1509,17 +1509,26 @@ function renderTotals() {
     `(target: €${fmt(Math.round(hvPersonalTarget/1000))}K/AM ex-VAT for this window, FTE-scaled — same as Call team)`;
 
   // ---- Pace bars ----
-  const pctThrough = Math.round(win.days / TOTALS.pace.days_in_month * 100);
+  // Fill bar = % of team revenue target achieved (capped at 100% for the green fill,
+  // but the label always shows the real number so you can see both direction and
+  // overshoot). Colour stays green — these bars are informational.
+  const callTeamTarget = callPersonalTarget * TOTALS.call_names.reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
+  const hvTeamTarget   = hvPersonalTarget  * (TOTALS.hv_names || []).reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
+  const callTeamRev    = cTotals.signed_val;
+  const hvTeamRev      = hvTotals.signed_val;
+  const callTeamPct    = callTeamTarget > 0 ? Math.round(callTeamRev / callTeamTarget * 100) : 0;
+  const hvTeamPct      = hvTeamTarget   > 0 ? Math.round(hvTeamRev   / hvTeamTarget   * 100) : 0;
+
   const paceBarHtml = (label, pct) => `
     <div style="background:#ecf0f1;border-radius:8px;overflow:hidden;position:relative;height:32px">
       <div style="background:#27ae60;height:100%;width:${Math.min(100,pct)}%;transition:width 0.3s"></div>
       <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:#2c3e50;font-weight:600;text-align:center;padding:0 10px">${label}</div>
     </div>`;
   document.getElementById("trackingCallPaceBar").innerHTML = paceBarHtml(
-    `${win.label} · ${win.days} days · Call revenue target: €${fmt(Math.round(callPersonalTarget/1000))}K/AM (€150K/month pro-rated)`, pctThrough
+    `${win.label} · ${win.days} days · €${fmt(Math.round(callTeamRev/1000))}K / €${fmt(Math.round(callTeamTarget/1000))}K team target (${callTeamPct}%) · €${fmt(Math.round(callPersonalTarget/1000))}K per AM`, callTeamPct
   );
   document.getElementById("trackingHvPaceBar").innerHTML = paceBarHtml(
-    `${win.label} · ${win.days} days · HV revenue target: €${fmt(Math.round(hvPersonalTarget/1000))}K/AM (€150K/month pro-rated)`, pctThrough
+    `${win.label} · ${win.days} days · €${fmt(Math.round(hvTeamRev/1000))}K / €${fmt(Math.round(hvTeamTarget/1000))}K team target (${hvTeamPct}%) · €${fmt(Math.round(hvPersonalTarget/1000))}K per AM`, hvTeamPct
   );
 
   // ---- Tracking lists ----
