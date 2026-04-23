@@ -169,13 +169,14 @@
 <div class="container">
 
 <h1>Performance Dashboard</h1>
-<p class="subtitle">March 24 – April 22, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Account Managers &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 09:27 CET</p>
+<p class="subtitle">March 24 – April 22, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 09:55 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
   <button id="btn-team-call"                   onclick="switchTeam('call')">📞 Call Team (11)</button>
   <button id="btn-team-support"                onclick="switchTeam('support')">🎧 Sales Support (15)</button>
+  <button id="btn-team-hv"                     onclick="switchTeam('hv')">🏠 Home Visit (22)</button>
 </div>
 
 <!-- ============================== PERFORMANCE TOTALS SECTION ============================== -->
@@ -276,6 +277,9 @@
   <div class="chart-box"><h3>📤 Most Quotes Sent (30d)</h3><table class="pipeline-table"><tbody id="lb-sent"></tbody></table></div>
 </div>
 <div class="chart-row">
+  <div class="chart-box"><h3>🔄 Converted Revenue (30d, ex-VAT)</h3><table class="pipeline-table"><tbody id="lb-converted-revenue"></tbody></table></div>
+</div>
+<div class="chart-row">
   <div class="chart-box"><h3>🗓️ MTD Signed Revenue (April, ex-VAT)</h3><table class="pipeline-table"><tbody id="lb-mtd-ex"></tbody></table></div>
   <div class="chart-box"><h3>🗓️ MTD Signed Revenue (April, incl. 21% VAT)</h3><table class="pipeline-table"><tbody id="lb-mtd-incl"></tbody></table></div>
 </div>
@@ -339,6 +343,115 @@
 </div>
 
 </div> <!-- end #callTeam -->
+
+<!-- ============================== HV TEAM SECTION ============================== -->
+<div id="hvTeam" style="display:none">
+
+<div class="filter-bar">
+  <h3>Filter by Account Manager <span style="font-weight:400;color:var(--gray);font-size:0.8rem">— click to toggle</span></h3>
+  <div class="filter-row" id="hvFilterRow"></div>
+  <div class="filter-actions">
+    <button class="filter-action-btn" onclick="hvSelectAll()">Select all</button>
+    <button class="filter-action-btn" onclick="hvSelectNone()">Clear</button>
+    <span class="filter-status" id="hvFilterStatus"></span>
+  </div>
+</div>
+
+<div class="cards" id="hvKpiCards"></div>
+
+<div class="caveat">
+  <strong>Methodology:</strong> Calls pulled live from the Aircall API (authoritative; matched to agents on email). Deal metrics from Snowflake <code>DIM_DEALS</code> (Consumer Orders pipeline, real deals only). "Created" counts deals whose <em>creation date</em> falls in the window; "signed"/"converted"/"lost" count deals whose respective event date falls in the window. Meetings proxy uses <code>DATE_APPOINTMENT_FIRST</code>. <strong>Chill pre-order haircut:</strong> any deal whose <em>deal name</em> contains "Chill Pre-Order" counts at <strong>30%</strong> of its full AMOUNT in every revenue figure (created / sent / signed / converted / MTD). Deal counts are unaffected.
+</div>
+
+<div style="display:flex;align-items:center;gap:15px;margin:15px 0 20px 0;flex-wrap:wrap">
+  <div class="team-switch" id="hvTableSwitch">
+    <button data-hvwin="total"                onclick="switchHvWindow('total')">All 30 Days</button>
+    <button data-hvwin="month" class="active" onclick="switchHvWindow('month')">Month-to-Date</button>
+  </div>
+  <div id="hvWindowLabel" style="color:var(--gray);font-size:0.9rem;font-weight:600"></div>
+</div>
+
+<h2>Per representative Comparison <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(click column header to sort)</span></h2>
+<div style="overflow-x:auto">
+<table class="compare" id="hvCompareTable">
+  <thead><tr id="hvCompareHead"></tr></thead>
+  <tbody id="hvCompareBody"></tbody>
+</table>
+</div>
+
+<h2>Leaderboards</h2>
+<div class="chart-row">
+  <div class="chart-box"><h3>🔝 Most Calls Made</h3><table class="pipeline-table"><tbody id="hv-lb-calls"></tbody></table></div>
+  <div class="chart-box"><h3>✍️ Most Quotes Signed (30d)</h3><table class="pipeline-table"><tbody id="hv-lb-signed"></tbody></table></div>
+</div>
+<div class="chart-row">
+  <div class="chart-box"><h3>💰 Signed Revenue (30d, ex-VAT)</h3><table class="pipeline-table"><tbody id="hv-lb-revenue"></tbody></table></div>
+  <div class="chart-box"><h3>📤 Most Quotes Sent (30d)</h3><table class="pipeline-table"><tbody id="hv-lb-sent"></tbody></table></div>
+</div>
+<div class="chart-row">
+  <div class="chart-box"><h3>🔄 Converted Revenue (30d, ex-VAT)</h3><table class="pipeline-table"><tbody id="hv-lb-converted-revenue"></tbody></table></div>
+</div>
+<div class="chart-row">
+  <div class="chart-box"><h3>🗓️ MTD Signed Revenue (April, ex-VAT)</h3><table class="pipeline-table"><tbody id="hv-lb-mtd-ex"></tbody></table></div>
+  <div class="chart-box"><h3>🗓️ MTD Signed Revenue (April, incl. 21% VAT)</h3><table class="pipeline-table"><tbody id="hv-lb-mtd-incl"></tbody></table></div>
+</div>
+<div class="chart-row">
+  <div class="chart-box"><h3>⏱️ Total Talk Time (min)</h3><table class="pipeline-table"><tbody id="hv-lb-talk"></tbody></table></div>
+  <div class="chart-box"><h3>🎯 Longest Avg Call (min)</h3><table class="pipeline-table"><tbody id="hv-lb-avgdur"></tbody></table></div>
+</div>
+
+<h2>Weekly Call Volume — per Representative</h2>
+<div class="chart-box full" style="margin-bottom:20px"><canvas id="hvTrendChart" style="max-height:420px"></canvas></div>
+
+<h2>Weekly Meeting Volume — per Representative</h2>
+<div class="chart-box full" style="margin-bottom:20px"><canvas id="hvMeetingsChart" style="max-height:420px"></canvas></div>
+
+<h2>Activity Heatmap — Calls + Meetings per Week</h2>
+<div class="caveat" style="margin:10px 0">
+  Each cell = calls + meetings for that AM in that week. Darker green = more active. Row total on the right; column total on the bottom.
+</div>
+<div style="overflow-x:auto">
+  <table class="heatmap" id="hvHeatmapTable"></table>
+</div>
+
+<h2>Hourly Utilization — Minutes on Calls + Meetings (06:00–22:00)</h2>
+<div class="caveat" style="margin:10px 0">
+  Minutes active per hour-of-day (CET), based on call duration plus meetings (assumed <strong>30 min</strong> each since duration isn't stored in HubSpot).
+  Rows use the main AM filter above. Select one or more weeks below to include in the totals.
+  Darker cell = more minutes of active time in that hour. Cells show minutes; row total = minutes across the selected weeks.
+</div>
+
+<div class="filter-bar" style="margin-bottom:15px">
+  <h3>Weeks included <span style="font-weight:400;color:var(--gray);font-size:0.8rem">— click to toggle</span></h3>
+  <div class="filter-row" id="hvWeekFilterRow"></div>
+  <div class="filter-actions">
+    <button class="filter-action-btn" onclick="hvWeeksSelectAll()">Select all weeks</button>
+    <button class="filter-action-btn" onclick="hvWeeksSelectNone()">Clear</button>
+    <span class="filter-status" id="hvWeekFilterStatus"></span>
+  </div>
+</div>
+
+<div style="overflow-x:auto">
+  <table class="heatmap" id="hvHourlyHeatmap"></table>
+</div>
+
+<h2>Activity vs Output</h2>
+<div class="chart-row">
+  <div class="chart-box"><h3>Calls (x) vs Quotes Signed (y) — dot size = signed revenue</h3><canvas id="hvScatterChart"></canvas></div>
+  <div class="chart-box"><h3>Sign Rate (sent → signed, %)</h3><canvas id="hvRateChart"></canvas></div>
+</div>
+
+<div class="insight red">
+  <strong>⚠️ Data caveats.</strong>
+  <ul style="margin-left:20px;margin-top:6px">
+    <li>Several AMs have <code>OWNER_END_DATE</code> in the past in <code>DIM_DEALS_OWNERS</code> — yet show active activity. Field appears unreliable.</li>
+    <li>"Lost" counts include backlog cleanup — not a pure single-period loss measure.</li>
+    <li>Deal revenue is raw <code>AMOUNT</code> from HubSpot; mixed VAT treatment across stages.</li>
+    <li>Meetings = first appointment booked per deal. Rescheduled/follow-up meetings and meetings without a deal are not counted.</li>
+  </ul>
+</div>
+
+</div> <!-- end #hvTeam -->
 
 <!-- ============================== SUPPORT TEAM SECTION ============================== -->
 <div id="supportTeam" style="display:none">
@@ -426,7 +539,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 23, 2026 at 09:27 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 23, 2026 at 09:55 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -589,6 +702,7 @@ function renderKPIs() {
     <div class="card green"><div class="value">${fmt(t.talk)}</div><div class="label">Talk Minutes</div><div class="sub">${Math.round(t.talk/60)} total talk hours</div></div>
     <div class="card blue"><div class="value">${t.sent}</div><div class="label">Quotes Sent</div><div class="sub">${eur(t.sentVal)} ex-VAT</div></div>
     <div class="card green"><div class="value">${t.signed}</div><div class="label">Quotes Signed</div><div class="sub">${eur(t.signedVal)} ex-VAT</div></div>
+    <div class="card blue"><div class="value">${eur(t.convVal)}</div><div class="label">Converted Revenue</div><div class="sub">${t.conv} deals</div></div>
     <div class="card yellow"><div class="value">${t.conv}</div><div class="label">Converted</div><div class="sub">${eur(t.convVal)} ex-VAT</div></div>
     <div class="card blue"><div class="value">${eur(t.mtdSignedEx)}</div><div class="label">MTD Signed (April)</div><div class="sub">${eur(t.mtdSignedIncl)} incl. VAT</div></div>
   `;
@@ -603,6 +717,7 @@ const COLS = [
   {key: "signedCnt",       label: "Quotes Signed",   sortable: true},
   {key: "sentToSigned",    label: "Sign Rate",       sortable: true},
   {key: "convertedCnt",    label: "Converted",       sortable: true},
+  {key: "convertedVal",    label: "Converted Rev",   sortable: true},
   {key: "lostCnt",         label: "Marked Lost",     sortable: true},
 ];
 
@@ -617,6 +732,7 @@ function renderTable() {
   const medSigned = median(F.map(p=>p.signedCnt));
   const medCalls = median(F.map(p=>p.totalCalls));
   const medSent = median(F.map(p=>p.sentCnt));
+  const medConv = median(F.map(p=>p.convertedVal));
   const rateArr = F.filter(p=>p.sentCnt>0).map(p=>p.sentToSigned);
   const medRate = median(rateArr) || 1;
 
@@ -645,6 +761,7 @@ function renderTable() {
         <td class="${clsSigned(p.signedCnt, medSigned)}"><span class="big">${p.signedCnt}</span><span class="small">${eur(p.signedVal)}</span></td>
         <td class="${rateCls}"><span class="big">${rate}</span><span class="small">sent→signed</span></td>
         <td class="cell-gray"><span class="big">${p.convertedCnt}</span><span class="small">${eur(p.convertedVal)}</span></td>
+        <td class="${clsSigned(p.convertedVal, medConv)}"><span class="big">${eur(p.convertedVal)}</span><span class="small">${p.convertedCnt} deals</span></td>
         <td class="cell-gray"><span class="big">${p.lostCnt}</span><span class="small">in window</span></td>
       </tr>`;
   }).join("");
@@ -686,7 +803,7 @@ function renderLeaderboard(elId, items, fmtFn, color) {
 
 function renderLeaderboards() {
   const F = filtered();
-  const ids = ["lb-calls","lb-signed","lb-revenue","lb-sent","lb-mtd-ex","lb-mtd-incl","lb-talk","lb-avgdur"];
+  const ids = ["lb-calls","lb-signed","lb-revenue","lb-sent","lb-converted-revenue","lb-mtd-ex","lb-mtd-incl","lb-talk","lb-avgdur"];
   if (F.length === 0) {
     ids.forEach(id => {
       document.getElementById(id).innerHTML =
@@ -695,14 +812,15 @@ function renderLeaderboards() {
     return;
   }
   const rank = (key) => F.map(p=>[p.name, p[key]]).sort((a,b) => b[1]-a[1]);
-  renderLeaderboard("lb-calls",    rank("totalCalls"),    v => fmt(v),        "#27ae60");
-  renderLeaderboard("lb-signed",   rank("signedCnt"),     v => v,              "#27ae60");
-  renderLeaderboard("lb-revenue",  rank("signedVal"),     eur,                 "#2980b9");
-  renderLeaderboard("lb-sent",     rank("sentCnt"),       v => fmt(v),        "#27ae60");
-  renderLeaderboard("lb-mtd-ex",   rank("mtdSignedEx"),   eur,                 "#2980b9");
-  renderLeaderboard("lb-mtd-incl", rank("mtdSignedIncl"), eur,                 "#8e44ad");
-  renderLeaderboard("lb-talk",     rank("talkMin"),       v => fmt(v),        "#27ae60");
-  renderLeaderboard("lb-avgdur",   rank("avgDurMin"),     v => v.toFixed(1),   "#2980b9");
+  renderLeaderboard("lb-calls",             rank("totalCalls"),    v => fmt(v),        "#27ae60");
+  renderLeaderboard("lb-signed",            rank("signedCnt"),     v => v,              "#27ae60");
+  renderLeaderboard("lb-revenue",           rank("signedVal"),     eur,                 "#2980b9");
+  renderLeaderboard("lb-sent",              rank("sentCnt"),       v => fmt(v),        "#27ae60");
+  renderLeaderboard("lb-converted-revenue", rank("convertedVal"),  eur,                 "#3498db");
+  renderLeaderboard("lb-mtd-ex",            rank("mtdSignedEx"),   eur,                 "#2980b9");
+  renderLeaderboard("lb-mtd-incl",          rank("mtdSignedIncl"), eur,                 "#8e44ad");
+  renderLeaderboard("lb-talk",              rank("talkMin"),       v => fmt(v),        "#27ae60");
+  renderLeaderboard("lb-avgdur",            rank("avgDurMin"),     v => v.toFixed(1),   "#2980b9");
 }
 
 let trendChart, meetingsChart, scatterChart, rateChart, quoteFlowChart;
@@ -1121,19 +1239,22 @@ function updateSupWindowLabel() {
     el.textContent = `Month-to-Date: ${TOTALS.pace.month_start} → ${TOTALS.pace.today} (${TOTALS.pace.work_days_elapsed} work days)`;
   }
 }
-let currentTeam = "totals";   // "totals" | "call" | "support"
+let currentTeam = "totals";   // "totals" | "call" | "support" | "hv"
 let currentProdView = "weekly";
 
 function switchTeam(which) {
   currentTeam = which;
-  ["totals","call","support"].forEach(v => {
-    document.getElementById("btn-team-" + v).classList.toggle("active", v === which);
+  ["totals","call","support","hv"].forEach(v => {
+    const el = document.getElementById("btn-team-" + v);
+    if (el) el.classList.toggle("active", v === which);
   });
   document.getElementById("totalsSection").style.display = (which === "totals") ? "" : "none";
   document.getElementById("callTeam").style.display      = (which === "call")    ? "" : "none";
   document.getElementById("supportTeam").style.display   = (which === "support") ? "" : "none";
+  document.getElementById("hvTeam").style.display        = (which === "hv")      ? "" : "none";
   if (which === "support") renderSupportAll();
-  if (which === "totals") renderTotals();
+  if (which === "hv")      renderHvAll();
+  if (which === "totals")  renderTotals();
 }
 
 // ---------- Performance Totals rendering ----------
@@ -1838,10 +1959,429 @@ function renderSupportAll() {
   renderSupHourlyHeatmap();
 }
 
+// ========================= HV TEAM =========================
+const HV_PEOPLE     = [{"name": "Ferdinand van der Zee", "email": "ferdinand.vanderzee@quatt.io", "color": "#e74c3c", "totalCalls": 149, "outbound": 149, "inbound": 0, "missed": 22, "answered": 127, "missedPct": 14.8, "talkMin": 359, "avgDurMin": 2.73, "createdCnt": 50, "createdVal": 219849.0, "sentCnt": 71, "sentValEx": 667707.0, "sentToSigned": 43.7, "signedCnt": 31, "signedVal": 294109.0, "convertedCnt": 27, "convertedVal": 262112.0, "lostCnt": 73, "createdToSigned": 62.0, "callsPerDay": 7.1, "callsWeekly": [38, 30, 25, 35, 21], "meetingsWeekly": [19, 16, 17, 20, 2], "meetingsTotal": 74, "mtdSignedCnt": 23, "mtdSignedEx": 221586.0, "mtdSignedIncl": 268119, "mtdConvCnt": 23, "mtdConvEx": 223896.0, "mtdConvIncl": 270914}, {"name": "Amir Wali", "email": "amir.wali@quatt.io", "color": "#f39c12", "totalCalls": 127, "outbound": 121, "inbound": 6, "missed": 28, "answered": 99, "missedPct": 22.0, "talkMin": 215, "avgDurMin": 2.08, "createdCnt": 72, "createdVal": 349817.0, "sentCnt": 92, "sentValEx": 915328.0, "sentToSigned": 27.2, "signedCnt": 25, "signedVal": 257208.0, "convertedCnt": 17, "convertedVal": 169885.0, "lostCnt": 155, "createdToSigned": 34.7, "callsPerDay": 6.05, "callsWeekly": [32, 22, 20, 24, 29], "meetingsWeekly": [19, 19, 21, 24, 12], "meetingsTotal": 95, "mtdSignedCnt": 15, "mtdSignedEx": 140676.0, "mtdSignedIncl": 170218, "mtdConvCnt": 15, "mtdConvEx": 150963.0, "mtdConvIncl": 182665}, {"name": "Mark Munneke", "email": "mark.munneke@quatt.io", "color": "#27ae60", "totalCalls": 113, "outbound": 111, "inbound": 2, "missed": 11, "answered": 102, "missedPct": 9.7, "talkMin": 363, "avgDurMin": 3.52, "createdCnt": 44, "createdVal": 222697.0, "sentCnt": 62, "sentValEx": 585888.0, "sentToSigned": 43.5, "signedCnt": 27, "signedVal": 267818.0, "convertedCnt": 15, "convertedVal": 131319.0, "lostCnt": 33, "createdToSigned": 61.4, "callsPerDay": 5.38, "callsWeekly": [20, 30, 27, 22, 14], "meetingsWeekly": [17, 17, 16, 23, 8], "meetingsTotal": 81, "mtdSignedCnt": 16, "mtdSignedEx": 152173.0, "mtdSignedIncl": 184129, "mtdConvCnt": 11, "mtdConvEx": 97075.0, "mtdConvIncl": 117461}, {"name": "Henrico van Tilburg", "email": "henrico.vantilburg@quatt.io", "color": "#2980b9", "totalCalls": 94, "outbound": 92, "inbound": 2, "missed": 10, "answered": 84, "missedPct": 10.6, "talkMin": 208, "avgDurMin": 2.42, "createdCnt": 48, "createdVal": 229367.0, "sentCnt": 63, "sentValEx": 613159.0, "sentToSigned": 39.7, "signedCnt": 25, "signedVal": 227901.0, "convertedCnt": 24, "convertedVal": 228628.0, "lostCnt": 29, "createdToSigned": 52.1, "callsPerDay": 4.48, "callsWeekly": [26, 19, 15, 20, 14], "meetingsWeekly": [13, 19, 14, 17, 7], "meetingsTotal": 70, "mtdSignedCnt": 20, "mtdSignedEx": 181235.0, "mtdSignedIncl": 219294, "mtdConvCnt": 18, "mtdConvEx": 161689.0, "mtdConvIncl": 195644}, {"name": "Brian Boersma", "email": "brian@quatt.io", "color": "#8e44ad", "totalCalls": 89, "outbound": 87, "inbound": 2, "missed": 12, "answered": 77, "missedPct": 13.5, "talkMin": 112, "avgDurMin": 1.4, "createdCnt": 59, "createdVal": 246874.0, "sentCnt": 53, "sentValEx": 550400.0, "sentToSigned": 49.1, "signedCnt": 26, "signedVal": 245625.0, "convertedCnt": 15, "convertedVal": 147905.0, "lostCnt": 44, "createdToSigned": 44.1, "callsPerDay": 4.24, "callsWeekly": [37, 12, 7, 10, 23], "meetingsWeekly": [14, 16, 7, 20, 9], "meetingsTotal": 66, "mtdSignedCnt": 21, "mtdSignedEx": 199820.0, "mtdSignedIncl": 241782, "mtdConvCnt": 13, "mtdConvEx": 129290.0, "mtdConvIncl": 156441}, {"name": "Mitchell Huisman", "email": "mitchell@quatt.io", "color": "#16a085", "totalCalls": 81, "outbound": 80, "inbound": 1, "missed": 6, "answered": 75, "missedPct": 7.4, "talkMin": 180, "avgDurMin": 2.35, "createdCnt": 45, "createdVal": 215964.0, "sentCnt": 72, "sentValEx": 689187.0, "sentToSigned": 36.1, "signedCnt": 26, "signedVal": 216834.0, "convertedCnt": 23, "convertedVal": 195649.0, "lostCnt": 54, "createdToSigned": 57.8, "callsPerDay": 3.86, "callsWeekly": [9, 21, 0, 27, 24], "meetingsWeekly": [16, 20, 3, 17, 10], "meetingsTotal": 66, "mtdSignedCnt": 14, "mtdSignedEx": 118148.0, "mtdSignedIncl": 142959, "mtdConvCnt": 11, "mtdConvEx": 84334.0, "mtdConvIncl": 102044}, {"name": "Jordi de Vos", "email": "jordi.vos@quatt.io", "color": "#d35400", "totalCalls": 69, "outbound": 68, "inbound": 1, "missed": 7, "answered": 62, "missedPct": 10.1, "talkMin": 152, "avgDurMin": 2.38, "createdCnt": 70, "createdVal": 313368.0, "sentCnt": 64, "sentValEx": 608217.0, "sentToSigned": 34.4, "signedCnt": 22, "signedVal": 203470.0, "convertedCnt": 16, "convertedVal": 131418.0, "lostCnt": 53, "createdToSigned": 31.4, "callsPerDay": 3.29, "callsWeekly": [14, 10, 10, 8, 27], "meetingsWeekly": [16, 19, 20, 18, 9], "meetingsTotal": 82, "mtdSignedCnt": 13, "mtdSignedEx": 115586.0, "mtdSignedIncl": 139859, "mtdConvCnt": 9, "mtdConvEx": 74491.0, "mtdConvIncl": 90134}, {"name": "Nicola Gobbi", "email": "nicola@quatt.io", "color": "#2c3e50", "totalCalls": 35, "outbound": 35, "inbound": 0, "missed": 7, "answered": 28, "missedPct": 20.0, "talkMin": 113, "avgDurMin": 3.95, "createdCnt": 80, "createdVal": 423818.0, "sentCnt": 79, "sentValEx": 784595.1, "sentToSigned": 36.7, "signedCnt": 29, "signedVal": 287127.1, "convertedCnt": 19, "convertedVal": 181946.0, "lostCnt": 86, "createdToSigned": 36.2, "callsPerDay": 1.67, "callsWeekly": [5, 0, 15, 11, 4], "meetingsWeekly": [7, 14, 14, 23, 12], "meetingsTotal": 70, "mtdSignedCnt": 24, "mtdSignedEx": 226110.1, "mtdSignedIncl": 273593, "mtdConvCnt": 16, "mtdConvEx": 153415.0, "mtdConvIncl": 185632}, {"name": "Stefan Hanna", "email": "stefan.hanna@quatt.io", "color": "#c0392b", "totalCalls": 34, "outbound": 33, "inbound": 1, "missed": 4, "answered": 30, "missedPct": 11.8, "talkMin": 74, "avgDurMin": 2.43, "createdCnt": 65, "createdVal": 378967.0, "sentCnt": 74, "sentValEx": 777730.0, "sentToSigned": 39.2, "signedCnt": 29, "signedVal": 298067.0, "convertedCnt": 15, "convertedVal": 136825.0, "lostCnt": 43, "createdToSigned": 44.6, "callsPerDay": 1.62, "callsWeekly": [0, 0, 7, 14, 13], "meetingsWeekly": [17, 19, 18, 21, 10], "meetingsTotal": 85, "mtdSignedCnt": 21, "mtdSignedEx": 222213.0, "mtdSignedIncl": 268878, "mtdConvCnt": 11, "mtdConvEx": 99342.0, "mtdConvIncl": 120204}, {"name": "Sven van Kampen", "email": "sven.vankampen@quatt.io", "color": "#1abc9c", "totalCalls": 30, "outbound": 27, "inbound": 3, "missed": 3, "answered": 27, "missedPct": 10.0, "talkMin": 109, "avgDurMin": 3.97, "createdCnt": 43, "createdVal": 399925.0, "sentCnt": 65, "sentValEx": 736088.0, "sentToSigned": 43.1, "signedCnt": 28, "signedVal": 269048.0, "convertedCnt": 19, "convertedVal": 179009.0, "lostCnt": 36, "createdToSigned": 65.1, "callsPerDay": 1.43, "callsWeekly": [17, 7, 1, 2, 3], "meetingsWeekly": [14, 14, 11, 16, 12], "meetingsTotal": 67, "mtdSignedCnt": 23, "mtdSignedEx": 220346.0, "mtdSignedIncl": 266619, "mtdConvCnt": 17, "mtdConvEx": 157610.0, "mtdConvIncl": 190708}, {"name": "Marco Willems", "email": "marco.willems@quatt.io", "color": "#7f8c8d", "totalCalls": 28, "outbound": 28, "inbound": 0, "missed": 5, "answered": 23, "missedPct": 17.9, "talkMin": 25, "avgDurMin": 1.0, "createdCnt": 60, "createdVal": 337705.0, "sentCnt": 68, "sentValEx": 685109.0, "sentToSigned": 39.7, "signedCnt": 27, "signedVal": 278399.0, "convertedCnt": 16, "convertedVal": 139614.0, "lostCnt": 26, "createdToSigned": 45.0, "callsPerDay": 1.33, "callsWeekly": [4, 11, 5, 4, 4], "meetingsWeekly": [5, 19, 24, 20, 13], "meetingsTotal": 81, "mtdSignedCnt": 20, "mtdSignedEx": 212423.0, "mtdSignedIncl": 257032, "mtdConvCnt": 11, "mtdConvEx": 93170.0, "mtdConvIncl": 112736}, {"name": "Koen Bender", "email": "koen.bender@quatt.io", "color": "#2ecc71", "totalCalls": 16, "outbound": 16, "inbound": 0, "missed": 1, "answered": 15, "missedPct": 6.2, "talkMin": 33, "avgDurMin": 2.15, "createdCnt": 53, "createdVal": 338905.0, "sentCnt": 74, "sentValEx": 734516.0, "sentToSigned": 25.7, "signedCnt": 19, "signedVal": 201670.0, "convertedCnt": 18, "convertedVal": 179542.0, "lostCnt": 61, "createdToSigned": 35.8, "callsPerDay": 0.76, "callsWeekly": [15, 0, 0, 1, 0], "meetingsWeekly": [17, 17, 18, 11, 11], "meetingsTotal": 74, "mtdSignedCnt": 12, "mtdSignedEx": 132763.0, "mtdSignedIncl": 160643, "mtdConvCnt": 11, "mtdConvEx": 115854.0, "mtdConvIncl": 140183}, {"name": "Jasmine Musicco", "email": "jasmine@quatt.io", "color": "#e74c3c", "totalCalls": 13, "outbound": 10, "inbound": 3, "missed": 2, "answered": 11, "missedPct": 15.4, "talkMin": 28, "avgDurMin": 2.42, "createdCnt": 20, "createdVal": 85879.0, "sentCnt": 38, "sentValEx": 447865.0, "sentToSigned": 60.5, "signedCnt": 23, "signedVal": 230205.0, "convertedCnt": 15, "convertedVal": 159922.0, "lostCnt": 20, "createdToSigned": 115.0, "callsPerDay": 0.62, "callsWeekly": [13, 0, 0, 0, 0], "meetingsWeekly": [12, 11, 11, 0, 3], "meetingsTotal": 37, "mtdSignedCnt": 11, "mtdSignedEx": 117736.0, "mtdSignedIncl": 142461, "mtdConvCnt": 12, "mtdConvEx": 125759.0, "mtdConvIncl": 152168}, {"name": "Seth van Die", "email": "seth.vandie@quatt.io", "color": "#f39c12", "totalCalls": 9, "outbound": 9, "inbound": 0, "missed": 0, "answered": 9, "missedPct": 0.0, "talkMin": 24, "avgDurMin": 2.62, "createdCnt": 43, "createdVal": 183427.0, "sentCnt": 62, "sentValEx": 612895.0, "sentToSigned": 45.2, "signedCnt": 28, "signedVal": 280281.0, "convertedCnt": 15, "convertedVal": 143310.0, "lostCnt": 28, "createdToSigned": 65.1, "callsPerDay": 0.43, "callsWeekly": [9, 0, 0, 0, 0], "meetingsWeekly": [20, 19, 15, 17, 12], "meetingsTotal": 83, "mtdSignedCnt": 11, "mtdSignedEx": 113122.0, "mtdSignedIncl": 136878, "mtdConvCnt": 10, "mtdConvEx": 93622.0, "mtdConvIncl": 113283}, {"name": "Vincent Turner", "email": "vincent.t@quatt.io", "color": "#27ae60", "totalCalls": 6, "outbound": 4, "inbound": 2, "missed": 0, "answered": 6, "missedPct": 0.0, "talkMin": 39, "avgDurMin": 6.53, "createdCnt": 30, "createdVal": 111508.0, "sentCnt": 51, "sentValEx": 537223.0, "sentToSigned": 27.5, "signedCnt": 14, "signedVal": 149757.0, "convertedCnt": 17, "convertedVal": 180679.0, "lostCnt": 33, "createdToSigned": 46.7, "callsPerDay": 0.29, "callsWeekly": [1, 5, 0, 0, 0], "meetingsWeekly": [14, 14, 13, 10, 0], "meetingsTotal": 51, "mtdSignedCnt": 8, "mtdSignedEx": 90804.0, "mtdSignedIncl": 109873, "mtdConvCnt": 10, "mtdConvEx": 108603.0, "mtdConvIncl": 131410}, {"name": "Glenn Verhoof", "email": "glenn.verhoof@quatt.io", "color": "#2980b9", "totalCalls": 5, "outbound": 5, "inbound": 0, "missed": 0, "answered": 5, "missedPct": 0.0, "talkMin": 6, "avgDurMin": 1.3, "createdCnt": 38, "createdVal": 193394.0, "sentCnt": 66, "sentValEx": 673273.0, "sentToSigned": 36.4, "signedCnt": 24, "signedVal": 224739.0, "convertedCnt": 23, "convertedVal": 213162.0, "lostCnt": 34, "createdToSigned": 63.2, "callsPerDay": 0.24, "callsWeekly": [3, 0, 1, 1, 0], "meetingsWeekly": [17, 15, 14, 19, 1], "meetingsTotal": 66, "mtdSignedCnt": 13, "mtdSignedEx": 123367.0, "mtdSignedIncl": 149274, "mtdConvCnt": 12, "mtdConvEx": 111504.0, "mtdConvIncl": 134920}, {"name": "Paul Vermin", "email": "paul.v@quatt.io", "color": "#8e44ad", "totalCalls": 4, "outbound": 4, "inbound": 0, "missed": 0, "answered": 4, "missedPct": 0.0, "talkMin": 23, "avgDurMin": 5.85, "createdCnt": 44, "createdVal": 242854.0, "sentCnt": 59, "sentValEx": 577661.0, "sentToSigned": 18.6, "signedCnt": 11, "signedVal": 91853.0, "convertedCnt": 12, "convertedVal": 104558.0, "lostCnt": 136, "createdToSigned": 25.0, "callsPerDay": 0.19, "callsWeekly": [1, 1, 0, 2, 0], "meetingsWeekly": [11, 16, 12, 14, 12], "meetingsTotal": 65, "mtdSignedCnt": 9, "mtdSignedEx": 74518.0, "mtdSignedIncl": 90167, "mtdConvCnt": 9, "mtdConvEx": 76297.0, "mtdConvIncl": 92319}, {"name": "Dennis Jonker", "email": "dennis.jonker@quatt.io", "color": "#16a085", "totalCalls": 3, "outbound": 3, "inbound": 0, "missed": 0, "answered": 3, "missedPct": 0.0, "talkMin": 3, "avgDurMin": 0.97, "createdCnt": 31, "createdVal": 97428.0, "sentCnt": 14, "sentValEx": 118980.0, "sentToSigned": 7.1, "signedCnt": 1, "signedVal": 7059.0, "convertedCnt": 1, "convertedVal": 7059.0, "lostCnt": 20, "createdToSigned": 3.2, "callsPerDay": 0.14, "callsWeekly": [0, 0, 0, 0, 3], "meetingsWeekly": [0, 0, 0, 14, 3], "meetingsTotal": 17, "mtdSignedCnt": 1, "mtdSignedEx": 7059.0, "mtdSignedIncl": 8541, "mtdConvCnt": 1, "mtdConvEx": 7059.0, "mtdConvIncl": 8541}, {"name": "Arash Nahas Farmaniyeh", "email": "arash.nahas.farmaniyeh@quatt.io", "color": "#d35400", "totalCalls": 2, "outbound": 2, "inbound": 0, "missed": 0, "answered": 2, "missedPct": 0.0, "talkMin": 1, "avgDurMin": 0.45, "createdCnt": 36, "createdVal": 176276.0, "sentCnt": 46, "sentValEx": 486353.0, "sentToSigned": 37.0, "signedCnt": 17, "signedVal": 171292.0, "convertedCnt": 11, "convertedVal": 109901.0, "lostCnt": 45, "createdToSigned": 47.2, "callsPerDay": 0.1, "callsWeekly": [0, 0, 2, 0, 0], "meetingsWeekly": [14, 16, 16, 22, 2], "meetingsTotal": 70, "mtdSignedCnt": 14, "mtdSignedEx": 142560.0, "mtdSignedIncl": 172498, "mtdConvCnt": 11, "mtdConvEx": 109901.0, "mtdConvIncl": 132980}, {"name": "Ravi van Lent", "email": "ravinder@quatt.io", "color": "#2c3e50", "totalCalls": 2, "outbound": 0, "inbound": 2, "missed": 0, "answered": 2, "missedPct": 0.0, "talkMin": 35, "avgDurMin": 17.37, "createdCnt": 24, "createdVal": 147345.0, "sentCnt": 41, "sentValEx": 435749.0, "sentToSigned": 46.3, "signedCnt": 19, "signedVal": 191522.0, "convertedCnt": 17, "convertedVal": 168214.0, "lostCnt": 35, "createdToSigned": 79.2, "callsPerDay": 0.1, "callsWeekly": [1, 0, 0, 0, 1], "meetingsWeekly": [8, 7, 3, 14, 8], "meetingsTotal": 40, "mtdSignedCnt": 12, "mtdSignedEx": 122600.0, "mtdSignedIncl": 148346, "mtdConvCnt": 7, "mtdConvEx": 65364.0, "mtdConvIncl": 79090}, {"name": "Nicky Willems", "email": "nicky@quatt.io", "color": "#c0392b", "totalCalls": 1, "outbound": 0, "inbound": 1, "missed": 0, "answered": 1, "missedPct": 0.0, "talkMin": 10, "avgDurMin": 9.93, "createdCnt": 47, "createdVal": 201456.0, "sentCnt": 31, "sentValEx": 299512.0, "sentToSigned": 25.8, "signedCnt": 8, "signedVal": 67314.0, "convertedCnt": 0, "convertedVal": 0.0, "lostCnt": 25, "createdToSigned": 17.0, "callsPerDay": 0.05, "callsWeekly": [0, 0, 0, 1, 0], "meetingsWeekly": [1, 0, 7, 18, 10], "meetingsTotal": 36, "mtdSignedCnt": 8, "mtdSignedEx": 67314.0, "mtdSignedIncl": 81450, "mtdConvCnt": 0, "mtdConvEx": 0.0, "mtdConvIncl": 0}, {"name": "Tom Heringa", "email": "tom@quatt.io", "color": "#1abc9c", "totalCalls": 0, "outbound": 0, "inbound": 0, "missed": 0, "answered": 0, "missedPct": 0, "talkMin": 0, "avgDurMin": 0, "createdCnt": 0, "createdVal": 0.0, "sentCnt": 0, "sentValEx": 0.0, "sentToSigned": 0, "signedCnt": 1, "signedVal": 6652.0, "convertedCnt": 0, "convertedVal": 0.0, "lostCnt": 178, "createdToSigned": 0, "callsPerDay": 0.0, "callsWeekly": [0, 0, 0, 0, 0], "meetingsWeekly": [0, 0, 0, 0, 1], "meetingsTotal": 1, "mtdSignedCnt": 1, "mtdSignedEx": 6652.0, "mtdSignedIncl": 8049, "mtdConvCnt": 0, "mtdConvEx": 0.0, "mtdConvIncl": 0}];
+const HV_HOURLY     = {"Henrico van Tilburg": {"2026-03-23": {"7": 60.7, "10": 95.9, "18": 6.2, "16": 25.3, "17": 11.9, "19": 2.8, "8": 91.0, "13": 60.0, "12": 90.0}, "2026-03-30": {"8": 153.1, "10": 122.5, "18": 4.4, "7": 0.5, "11": 68.1, "16": 26.0, "13": 121.9, "9": 30.8, "17": 0.7, "12": 30.0, "15": 30.0, "14": 30.0}, "2026-04-06": {"8": 91.0, "17": 7.2, "9": 31.3, "22": 1.7, "16": 5.0, "12": 30.0, "10": 60.0, "13": 90.0, "14": 30.0, "11": 90.0}, "2026-04-13": {"20": 5.5, "19": 1.3, "14": 124.4, "15": 6.9, "12": 60.8, "16": 48.7, "8": 150.7, "13": 0.9, "9": 30.0, "11": 30.0, "10": 120.0}, "2026-04-20": {"8": 91.1, "9": 1.1, "14": 1.3, "17": 4.1, "19": 7.2, "20": 1.0, "10": 30.0, "13": 60.0, "11": 30.0}}, "Brian Boersma": {"2026-03-23": {"8": 31.4, "12": 61.9, "14": 65.9, "16": 23.4, "10": 121.6, "11": 42.0, "13": 30.8, "15": 3.0, "7": 60.0, "9": 30.0}, "2026-03-30": {"8": 123.0, "13": 90.9, "15": 35.2, "16": 0.7, "9": 30.9, "12": 61.2, "10": 90.8, "14": 60.0}, "2026-04-06": {"12": 62.8, "13": 0.4, "8": 61.4, "15": 6.5, "14": 30.0, "10": 60.0}, "2026-04-13": {"11": 92.9, "15": 61.4, "16": 0.4, "8": 61.0, "10": 30.7, "9": 90.6, "14": 60.6, "7": 30.0, "12": 60.0, "13": 120.0}, "2026-04-20": {"8": 92.7, "15": 0.4, "9": 31.6, "11": 30.9, "12": 47.4, "16": 3.5, "13": 30.0, "10": 30.0, "14": 30.0}}, "Ravi van Lent": {"2026-03-23": {"9": 36.2, "10": 60.0, "12": 60.0, "8": 90.0}, "2026-04-20": {"13": 28.6, "12": 60.0, "10": 90.0, "11": 30.0, "8": 60.0}, "2026-04-13": {"9": 30.0, "10": 60.0, "11": 90.0, "8": 180.0, "12": 60.0}, "2026-04-06": {"11": 30.0, "8": 30.0, "10": 30.0}, "2026-03-30": {"8": 60.0, "11": 30.0, "12": 30.0, "10": 90.0}}, "Sven van Kampen": {"2026-03-23": {"9": 61.4, "13": 60.1, "14": 31.0, "11": 10.4, "15": 21.1, "12": 91.8, "10": 90.0, "8": 120.0}, "2026-03-30": {"11": 60.8, "15": 11.7, "16": 18.7, "14": 30.7, "12": 90.0, "13": 90.0, "8": 90.0, "10": 60.0}, "2026-04-06": {"11": 3.0, "14": 60.0, "12": 90.0, "8": 30.0, "10": 90.0, "9": 60.0}, "2026-04-13": {"12": 120.3, "14": 32.5, "13": 30.0, "10": 90.0, "8": 60.0, "11": 30.0, "9": 60.0, "15": 60.0}, "2026-04-20": {"14": 61.3, "15": 2.2, "12": 60.0, "9": 30.0, "8": 60.0, "7": 30.0, "10": 60.0, "13": 30.0, "11": 30.0}}, "Amir Wali": {"2026-03-23": {"10": 100.1, "12": 150.6, "16": 38.0, "9": 32.5, "17": 8.1, "11": 33.0, "13": 35.2, "14": 30.8, "18": 5.0, "15": 32.7, "8": 150.0}, "2026-03-30": {"10": 31.4, "11": 107.1, "12": 63.2, "9": 30.7, "16": 39.6, "17": 2.9, "18": 3.8, "13": 120.6, "14": 61.0, "8": 150.0, "15": 30.0}, "2026-04-06": {"9": 35.4, "10": 122.4, "12": 71.2, "13": 90.9, "11": 68.5, "15": 0.6, "14": 66.9, "17": 0.4, "8": 120.0, "16": 90.0}, "2026-04-13": {"9": 72.2, "10": 91.6, "11": 124.0, "12": 63.7, "14": 62.0, "13": 90.6, "16": 90.0, "8": 120.0, "17": 30.0}, "2026-04-20": {"11": 61.1, "13": 34.2, "14": 45.6, "15": 0.7, "9": 35.8, "12": 31.0, "8": 60.7, "16": 60.0, "10": 60.0}}, "Jasmine Musicco": {"2026-03-23": {"10": 1.2, "16": 14.4, "11": 94.8, "14": 62.7, "17": 3.5, "13": 90.0, "9": 120.0}, "2026-03-30": {"15": 30.0, "9": 120.0, "11": 90.0, "13": 30.0, "10": 30.0, "12": 30.0}, "2026-04-20": {"9": 30.0, "11": 30.0, "12": 30.0}, "2026-04-06": {"14": 60.0, "11": 30.0, "12": 60.0, "8": 30.0, "10": 60.0, "15": 30.0, "9": 60.0}}, "Ferdinand van der Zee": {"2026-03-23": {"13": 79.0, "17": 14.4, "10": 121.9, "12": 152.5, "15": 34.5, "16": 16.8, "8": 121.4, "9": 34.8, "14": 30.0, "11": 30.0}, "2026-03-30": {"7": 1.9, "10": 62.6, "12": 90.6, "16": 10.0, "9": 30.6, "11": 68.5, "13": 25.4, "17": 23.8, "8": 124.9, "14": 90.0, "15": 30.0}, "2026-04-06": {"8": 121.3, "12": 92.9, "17": 3.9, "7": 2.2, "10": 91.0, "16": 27.2, "11": 31.9, "13": 60.6, "9": 60.7, "14": 60.0}, "2026-04-13": {"9": 53.3, "13": 35.6, "15": 37.7, "8": 182.6, "12": 93.5, "10": 165.3, "11": 8.9, "19": 0.6, "14": 90.8, "16": 31.1}, "2026-04-20": {"9": 22.1, "10": 8.6, "8": 10.2, "16": 12.7, "17": 9.2, "12": 30.0, "14": 30.0}}, "Mark Munneke": {"2026-03-23": {"14": 43.8, "10": 1.4, "15": 45.5, "16": 0.5, "17": 11.5, "12": 63.7, "13": 51.0, "8": 150.9, "11": 150.0, "9": 60.0}, "2026-03-30": {"9": 23.3, "14": 70.7, "17": 14.0, "18": 2.6, "7": 0.5, "8": 152.6, "11": 9.9, "12": 140.1, "16": 11.7, "10": 91.2, "13": 31.0, "15": 60.0}, "2026-04-06": {"7": 0.6, "9": 8.7, "15": 1.5, "8": 129.2, "10": 63.3, "13": 66.9, "11": 61.1, "14": 79.2, "16": 60.4, "12": 60.0}, "2026-04-13": {"11": 91.8, "17": 31.0, "12": 91.4, "14": 31.1, "15": 47.7, "8": 150.6, "10": 98.5, "16": 37.3, "9": 60.0, "13": 120.0}, "2026-04-20": {"15": 11.6, "9": 39.4, "10": 34.2, "13": 0.8, "14": 44.5, "17": 32.2, "11": 60.0, "8": 90.0}}, "Jordi de Vos": {"2026-03-23": {"17": 2.2, "13": 64.5, "15": 6.6, "16": 1.4, "10": 96.8, "8": 60.0, "11": 90.0, "14": 30.0, "12": 60.0, "9": 60.0}, "2026-03-30": {"15": 7.5, "16": 5.5, "17": 16.5, "18": 1.6, "10": 120.0, "13": 30.0, "12": 150.0, "8": 180.0, "14": 90.0}, "2026-04-06": {"17": 9.1, "18": 0.6, "16": 69.9, "14": 120.0, "10": 90.0, "13": 30.0, "9": 30.0, "8": 150.0, "12": 120.0}, "2026-04-13": {"14": 35.1, "16": 38.3, "17": 0.5, "18": 1.0, "8": 150.0, "9": 90.0, "11": 30.0, "13": 90.0, "12": 30.0, "15": 30.0, "10": 60.0}, "2026-04-20": {"14": 56.0, "15": 11.9, "13": 22.6, "9": 30.0, "11": 30.0, "12": 60.0, "10": 30.0, "8": 30.0, "16": 60.0}}, "Vincent Turner": {"2026-03-23": {"10": 35.5, "7": 30.0, "11": 90.0, "8": 60.0, "13": 60.0, "12": 30.0, "9": 90.0, "14": 30.0}, "2026-03-30": {"16": 23.6, "12": 37.5, "13": 92.6, "8": 90.0, "9": 30.0, "11": 30.0, "14": 60.0, "10": 90.0}, "2026-04-06": {"8": 90.0, "11": 60.0, "9": 60.0, "14": 30.0, "12": 60.0, "13": 60.0, "10": 30.0}, "2026-04-13": {"8": 60.0, "13": 90.0, "12": 60.0, "11": 60.0, "9": 30.0}}, "Marco Willems": {"2026-03-23": {"11": 30.9, "14": 0.6, "12": 31.6, "8": 30.0, "10": 30.0, "9": 30.0}, "2026-03-30": {"15": 30.4, "13": 35.2, "14": 90.6, "8": 154.9, "10": 120.1, "11": 30.8, "9": 30.0, "12": 90.0}, "2026-04-06": {"9": 91.5, "11": 60.4, "13": 151.1, "14": 30.0, "8": 120.0, "16": 90.0, "12": 60.0, "10": 120.0}, "2026-04-13": {"9": 31.2, "12": 90.6, "13": 90.9, "15": 30.0, "10": 90.0, "8": 150.0, "14": 30.0, "11": 90.0}, "2026-04-20": {"10": 61.8, "11": 30.1, "12": 30.1, "14": 30.0, "15": 60.0, "13": 60.0, "16": 30.0, "8": 90.0}}, "Mitchell Huisman": {"2026-03-23": {"14": 10.2, "15": 90.4, "11": 3.1, "12": 150.6, "8": 60.0, "10": 150.0}, "2026-03-30": {"13": 62.0, "14": 33.1, "15": 92.0, "16": 18.4, "17": 25.6, "10": 184.6, "12": 100.4, "8": 150.0}, "2026-04-13": {"16": 13.1, "17": 5.7, "12": 42.5, "13": 122.3, "15": 124.4, "9": 60.6, "10": 35.9, "14": 38.5, "8": 30.0, "11": 90.0}, "2026-04-20": {"15": 37.4, "16": 34.9, "17": 27.1, "9": 60.4, "10": 60.4, "14": 3.0, "13": 30.0, "12": 60.0, "11": 30.0}, "2026-04-06": {"14": 30.0, "8": 30.0, "11": 30.0}}, "Nicola Gobbi": {"2026-03-23": {"16": 6.0, "11": 30.0, "8": 60.0, "9": 30.0, "13": 30.0, "12": 30.0, "10": 30.0}, "2026-04-06": {"14": 0.4, "13": 121.6, "17": 12.2, "10": 30.4, "11": 60.2, "18": 8.7, "16": 10.2, "9": 60.0, "15": 60.0, "8": 90.0}, "2026-04-13": {"13": 61.6, "9": 91.0, "10": 143.6, "11": 60.0, "16": 150.0, "12": 60.0, "15": 60.0, "14": 90.0}, "2026-04-20": {"14": 63.9, "18": 4.8, "13": 65.8, "8": 30.0, "16": 30.0, "15": 60.0, "10": 60.0, "9": 30.0, "17": 30.0, "11": 30.0}, "2026-03-30": {"15": 30.0, "13": 60.0, "14": 60.0, "12": 60.0, "8": 90.0, "11": 90.0, "9": 30.0}}, "Koen Bender": {"2026-03-23": {"16": 5.3, "14": 56.5, "9": 90.0, "10": 60.0, "12": 60.0, "11": 90.0, "15": 60.0, "13": 60.0, "8": 60.0}, "2026-04-13": {"13": 30.4, "10": 90.0, "14": 60.0, "8": 60.0, "12": 30.0, "11": 60.0}, "2026-03-30": {"13": 90.0, "10": 120.0, "9": 30.0, "12": 90.0, "8": 90.0, "7": 30.0, "15": 60.0}, "2026-04-06": {"12": 60.0, "14": 90.0, "9": 30.0, "13": 90.0, "8": 150.0, "10": 90.0, "11": 30.0}, "2026-04-20": {"10": 120.0, "9": 30.0, "12": 90.0, "14": 60.0, "8": 30.0}}, "Paul Vermin": {"2026-03-23": {"12": 41.4, "13": 30.0, "8": 60.0, "10": 120.0, "15": 30.0, "11": 30.0, "9": 30.0}, "2026-03-30": {"13": 11.4, "12": 120.0, "8": 150.0, "15": 30.0, "14": 60.0, "10": 90.0, "9": 30.0}, "2026-04-13": {"13": 60.3, "9": 30.3, "10": 90.0, "11": 30.0, "8": 30.0, "12": 60.0, "15": 60.0, "14": 60.0}, "2026-04-20": {"15": 30.0, "11": 30.0, "8": 60.0, "9": 30.0, "14": 30.0, "12": 30.0, "13": 90.0, "10": 60.0}, "2026-04-06": {"11": 60.0, "9": 30.0, "8": 60.0, "12": 60.0, "10": 60.0, "14": 90.0}}, "Glenn Verhoof": {"2026-03-23": {"15": 60.6, "11": 32.0, "8": 150.6, "14": 30.0, "10": 90.0, "9": 30.0, "13": 30.0, "12": 90.0}, "2026-04-06": {"15": 31.1, "10": 60.0, "12": 60.0, "14": 60.0, "8": 60.0, "13": 30.0, "11": 60.0, "9": 60.0}, "2026-04-13": {"15": 32.2, "16": 30.0, "12": 60.0, "9": 120.0, "8": 30.0, "13": 90.0, "10": 60.0, "11": 150.0}, "2026-03-30": {"11": 150.0, "14": 60.0, "13": 90.0, "8": 60.0, "10": 60.0, "9": 30.0}, "2026-04-20": {"17": 30.0}}, "Seth van Die": {"2026-03-23": {"16": 47.4, "17": 36.2, "9": 30.0, "11": 90.0, "7": 60.0, "13": 120.0, "14": 30.0, "15": 30.0, "12": 60.0, "8": 60.0, "10": 60.0}, "2026-03-30": {"12": 120.0, "13": 90.0, "11": 30.0, "10": 90.0, "9": 60.0, "7": 30.0, "8": 120.0, "14": 30.0}, "2026-04-06": {"14": 30.0, "12": 60.0, "13": 90.0, "10": 120.0, "8": 90.0, "11": 60.0}, "2026-04-13": {"12": 90.0, "13": 60.0, "14": 60.0, "10": 120.0, "8": 180.0}, "2026-04-20": {"12": 60.0, "13": 30.0, "14": 60.0, "10": 30.0, "9": 30.0, "8": 90.0, "11": 60.0}}, "Stefan Hanna": {"2026-04-06": {"9": 48.1, "10": 102.2, "14": 64.2, "7": 0.6, "8": 150.0, "11": 60.0, "13": 60.0, "12": 60.0, "16": 30.0}, "2026-04-13": {"13": 93.2, "9": 92.6, "11": 92.7, "14": 151.7, "16": 31.2, "8": 60.0, "12": 60.0, "10": 60.0}, "2026-04-20": {"13": 15.3, "10": 60.7, "12": 34.4, "7": 0.4, "8": 35.2, "11": 60.8, "16": 30.0, "14": 60.0, "9": 30.0}, "2026-03-23": {"14": 30.0, "13": 90.0, "12": 90.0, "8": 120.0, "10": 120.0, "11": 30.0}, "2026-03-30": {"15": 30.0, "11": 60.0, "9": 60.0, "8": 150.0, "12": 60.0, "10": 90.0, "13": 60.0, "14": 60.0}}, "Arash Nahas Farmaniyeh": {"2026-04-06": {"12": 60.2, "14": 90.7, "13": 30.0, "16": 30.0, "11": 90.0, "8": 90.0, "9": 30.0, "10": 60.0}, "2026-03-23": {"8": 30.0, "10": 90.0, "9": 90.0, "12": 60.0, "13": 90.0, "11": 60.0}, "2026-03-30": {"8": 180.0, "9": 30.0, "11": 30.0, "10": 120.0, "12": 60.0, "13": 60.0}, "2026-04-13": {"10": 60.0, "8": 210.0, "16": 60.0, "12": 150.0, "9": 60.0, "13": 60.0, "14": 60.0}, "2026-04-20": {"9": 60.0}}, "Nicky Willems": {"2026-04-13": {"15": 39.9, "13": 60.0, "14": 60.0, "9": 60.0, "11": 60.0, "12": 90.0, "10": 90.0, "8": 90.0}, "2026-04-06": {"10": 60.0, "12": 60.0, "14": 30.0, "8": 60.0}, "2026-04-20": {"13": 30.0, "8": 90.0, "12": 60.0, "14": 60.0, "10": 60.0}, "2026-03-23": {"11": 30.0}}, "Dennis Jonker": {"2026-04-20": {"9": 31.0, "11": 1.0, "12": 0.9, "15": 30.0, "13": 30.0}, "2026-04-13": {"8": 90.0, "10": 90.0, "9": 30.0, "13": 60.0, "12": 60.0, "11": 60.0, "14": 30.0}}, "Tom Heringa": {"2026-04-20": {"14": 30.0}}};
+const HV_DAILY      = {"days": ["2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-20", "2026-04-21", "2026-04-22"], "by_name": {"Amir Wali": {"2026-03-24": {"calls": 10, "meetings": 4, "talk_min": 19}, "2026-03-25": {"calls": 5, "meetings": 4, "talk_min": 13}, "2026-03-26": {"calls": 7, "meetings": 3, "talk_min": 6}, "2026-03-27": {"calls": 7, "meetings": 5, "talk_min": 2}, "2026-03-30": {"calls": 4, "meetings": 4, "talk_min": 18}, "2026-03-31": {"calls": 5, "meetings": 3, "talk_min": 15}, "2026-04-01": {"calls": 5, "meetings": 4, "talk_min": 5}, "2026-04-02": {"calls": 5, "meetings": 5, "talk_min": 32}, "2026-04-03": {"calls": 3, "meetings": 3, "talk_min": 2}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 3, "meetings": 5, "talk_min": 2}, "2026-04-08": {"calls": 4, "meetings": 6, "talk_min": 3}, "2026-04-09": {"calls": 8, "meetings": 5, "talk_min": 23}, "2026-04-10": {"calls": 5, "meetings": 5, "talk_min": 9}, "2026-04-13": {"calls": 4, "meetings": 3, "talk_min": 3}, "2026-04-14": {"calls": 5, "meetings": 5, "talk_min": 4}, "2026-04-15": {"calls": 6, "meetings": 6, "talk_min": 5}, "2026-04-16": {"calls": 4, "meetings": 5, "talk_min": 12}, "2026-04-17": {"calls": 5, "meetings": 5, "talk_min": 3}, "2026-04-20": {"calls": 17, "meetings": 3, "talk_min": 20}, "2026-04-21": {"calls": 6, "meetings": 5, "talk_min": 7}, "2026-04-22": {"calls": 6, "meetings": 4, "talk_min": 4}}, "Arash Nahas Farmaniyeh": {"2026-03-24": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-25": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 2, "meetings": 4, "talk_min": 1}, "2026-04-08": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 6, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 2, "talk_min": 0}}, "Brian Boersma": {"2026-03-24": {"calls": 23, "meetings": 0, "talk_min": 34}, "2026-03-25": {"calls": 6, "meetings": 4, "talk_min": 10}, "2026-03-26": {"calls": 5, "meetings": 4, "talk_min": 3}, "2026-03-27": {"calls": 2, "meetings": 3, "talk_min": 3}, "2026-03-30": {"calls": 1, "meetings": 3, "talk_min": 1}, "2026-03-31": {"calls": 7, "meetings": 4, "talk_min": 8}, "2026-04-01": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-02": {"calls": 3, "meetings": 4, "talk_min": 3}, "2026-04-03": {"calls": 1, "meetings": 3, "talk_min": 1}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-09": {"calls": 3, "meetings": 4, "talk_min": 4}, "2026-04-10": {"calls": 4, "meetings": 3, "talk_min": 8}, "2026-04-13": {"calls": 3, "meetings": 3, "talk_min": 3}, "2026-04-14": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-15": {"calls": 1, "meetings": 5, "talk_min": 1}, "2026-04-16": {"calls": 2, "meetings": 4, "talk_min": 2}, "2026-04-17": {"calls": 4, "meetings": 4, "talk_min": 2}, "2026-04-20": {"calls": 2, "meetings": 1, "talk_min": 2}, "2026-04-21": {"calls": 17, "meetings": 4, "talk_min": 20}, "2026-04-22": {"calls": 4, "meetings": 4, "talk_min": 5}}, "Dennis Jonker": {"2026-03-24": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-25": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-22": {"calls": 3, "meetings": 3, "talk_min": 3}}, "Ferdinand van der Zee": {"2026-03-24": {"calls": 7, "meetings": 3, "talk_min": 11}, "2026-03-25": {"calls": 4, "meetings": 5, "talk_min": 4}, "2026-03-26": {"calls": 5, "meetings": 3, "talk_min": 20}, "2026-03-27": {"calls": 11, "meetings": 4, "talk_min": 19}, "2026-03-30": {"calls": 5, "meetings": 4, "talk_min": 5}, "2026-03-31": {"calls": 4, "meetings": 3, "talk_min": 15}, "2026-04-01": {"calls": 14, "meetings": 4, "talk_min": 38}, "2026-04-02": {"calls": 5, "meetings": 4, "talk_min": 18}, "2026-04-03": {"calls": 2, "meetings": 1, "talk_min": 4}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 13, "meetings": 4, "talk_min": 31}, "2026-04-08": {"calls": 4, "meetings": 4, "talk_min": 6}, "2026-04-09": {"calls": 4, "meetings": 4, "talk_min": 4}, "2026-04-10": {"calls": 4, "meetings": 5, "talk_min": 2}, "2026-04-13": {"calls": 7, "meetings": 3, "talk_min": 25}, "2026-04-14": {"calls": 10, "meetings": 5, "talk_min": 28}, "2026-04-15": {"calls": 11, "meetings": 4, "talk_min": 40}, "2026-04-16": {"calls": 3, "meetings": 5, "talk_min": 3}, "2026-04-17": {"calls": 3, "meetings": 3, "talk_min": 3}, "2026-04-20": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-21": {"calls": 11, "meetings": 0, "talk_min": 31}, "2026-04-22": {"calls": 10, "meetings": 2, "talk_min": 36}}, "Glenn Verhoof": {"2026-03-24": {"calls": 1, "meetings": 3, "talk_min": 1}, "2026-03-25": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-03-26": {"calls": 1, "meetings": 5, "talk_min": 1}, "2026-03-27": {"calls": 1, "meetings": 3, "talk_min": 2}, "2026-03-30": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-10": {"calls": 1, "meetings": 2, "talk_min": 1}, "2026-04-13": {"calls": 1, "meetings": 3, "talk_min": 2}, "2026-04-14": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 0, "talk_min": 0}}, "Henrico van Tilburg": {"2026-03-24": {"calls": 3, "meetings": 2, "talk_min": 27}, "2026-03-25": {"calls": 4, "meetings": 3, "talk_min": 6}, "2026-03-26": {"calls": 7, "meetings": 4, "talk_min": 6}, "2026-03-27": {"calls": 6, "meetings": 2, "talk_min": 7}, "2026-03-30": {"calls": 3, "meetings": 2, "talk_min": 6}, "2026-03-31": {"calls": 4, "meetings": 4, "talk_min": 12}, "2026-04-01": {"calls": 2, "meetings": 4, "talk_min": 2}, "2026-04-02": {"calls": 3, "meetings": 4, "talk_min": 3}, "2026-04-03": {"calls": 7, "meetings": 5, "talk_min": 25}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 1, "meetings": 4, "talk_min": 0}, "2026-04-08": {"calls": 1, "meetings": 3, "talk_min": 1}, "2026-04-09": {"calls": 3, "meetings": 3, "talk_min": 3}, "2026-04-10": {"calls": 10, "meetings": 4, "talk_min": 12}, "2026-04-13": {"calls": 1, "meetings": 2, "talk_min": 5}, "2026-04-14": {"calls": 3, "meetings": 4, "talk_min": 2}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 3, "meetings": 4, "talk_min": 16}, "2026-04-17": {"calls": 3, "meetings": 3, "talk_min": 35}, "2026-04-20": {"calls": 2, "meetings": 2, "talk_min": 2}, "2026-04-21": {"calls": 4, "meetings": 3, "talk_min": 5}, "2026-04-22": {"calls": 8, "meetings": 2, "talk_min": 8}}, "Jasmine Musicco": {"2026-03-24": {"calls": 1, "meetings": 3, "talk_min": 5}, "2026-03-25": {"calls": 1, "meetings": 2, "talk_min": 1}, "2026-03-26": {"calls": 8, "meetings": 4, "talk_min": 9}, "2026-03-27": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 0, "talk_min": 0}}, "Jordi de Vos": {"2026-03-24": {"calls": 2, "meetings": 2, "talk_min": 2}, "2026-03-25": {"calls": 2, "meetings": 2, "talk_min": 2}, "2026-03-26": {"calls": 4, "meetings": 4, "talk_min": 5}, "2026-03-27": {"calls": 1, "meetings": 6, "talk_min": 2}, "2026-03-30": {"calls": 6, "meetings": 3, "talk_min": 13}, "2026-03-31": {"calls": 1, "meetings": 4, "talk_min": 2}, "2026-04-01": {"calls": 2, "meetings": 4, "talk_min": 16}, "2026-04-02": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-03": {"calls": 1, "meetings": 3, "talk_min": 1}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 1, "meetings": 4, "talk_min": 1}, "2026-04-08": {"calls": 2, "meetings": 5, "talk_min": 9}, "2026-04-09": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-10": {"calls": 7, "meetings": 6, "talk_min": 10}, "2026-04-13": {"calls": 1, "meetings": 2, "talk_min": 5}, "2026-04-14": {"calls": 0, "meetings": 6, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 3, "meetings": 4, "talk_min": 8}, "2026-04-17": {"calls": 4, "meetings": 2, "talk_min": 2}, "2026-04-20": {"calls": 5, "meetings": 3, "talk_min": 14}, "2026-04-21": {"calls": 22, "meetings": 1, "talk_min": 47}, "2026-04-22": {"calls": 0, "meetings": 5, "talk_min": 0}}, "Koen Bender": {"2026-03-24": {"calls": 9, "meetings": 3, "talk_min": 17}, "2026-03-25": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-26": {"calls": 4, "meetings": 4, "talk_min": 11}, "2026-03-27": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-14": {"calls": 1, "meetings": 4, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 3, "talk_min": 0}}, "Marco Willems": {"2026-03-24": {"calls": 2, "meetings": 2, "talk_min": 2}, "2026-03-25": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-30": {"calls": 1, "meetings": 3, "talk_min": 0}, "2026-03-31": {"calls": 5, "meetings": 3, "talk_min": 6}, "2026-04-01": {"calls": 3, "meetings": 3, "talk_min": 4}, "2026-04-02": {"calls": 1, "meetings": 5, "talk_min": 1}, "2026-04-03": {"calls": 1, "meetings": 5, "talk_min": 1}, "2026-04-06": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-07": {"calls": 4, "meetings": 6, "talk_min": 2}, "2026-04-08": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-10": {"calls": 1, "meetings": 6, "talk_min": 1}, "2026-04-13": {"calls": 2, "meetings": 3, "talk_min": 2}, "2026-04-14": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-15": {"calls": 2, "meetings": 5, "talk_min": 1}, "2026-04-16": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-21": {"calls": 4, "meetings": 2, "talk_min": 2}, "2026-04-22": {"calls": 0, "meetings": 6, "talk_min": 0}}, "Mark Munneke": {"2026-03-24": {"calls": 3, "meetings": 3, "talk_min": 4}, "2026-03-25": {"calls": 2, "meetings": 4, "talk_min": 2}, "2026-03-26": {"calls": 3, "meetings": 5, "talk_min": 20}, "2026-03-27": {"calls": 5, "meetings": 3, "talk_min": 11}, "2026-03-30": {"calls": 6, "meetings": 3, "talk_min": 30}, "2026-03-31": {"calls": 8, "meetings": 3, "talk_min": 15}, "2026-04-01": {"calls": 7, "meetings": 3, "talk_min": 36}, "2026-04-02": {"calls": 6, "meetings": 4, "talk_min": 16}, "2026-04-03": {"calls": 3, "meetings": 4, "talk_min": 2}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 6, "meetings": 3, "talk_min": 16}, "2026-04-08": {"calls": 7, "meetings": 4, "talk_min": 6}, "2026-04-09": {"calls": 9, "meetings": 5, "talk_min": 27}, "2026-04-10": {"calls": 5, "meetings": 4, "talk_min": 4}, "2026-04-13": {"calls": 3, "meetings": 4, "talk_min": 10}, "2026-04-14": {"calls": 9, "meetings": 5, "talk_min": 27}, "2026-04-15": {"calls": 3, "meetings": 5, "talk_min": 1}, "2026-04-16": {"calls": 2, "meetings": 5, "talk_min": 6}, "2026-04-17": {"calls": 5, "meetings": 4, "talk_min": 25}, "2026-04-20": {"calls": 2, "meetings": 3, "talk_min": 12}, "2026-04-21": {"calls": 5, "meetings": 3, "talk_min": 11}, "2026-04-22": {"calls": 7, "meetings": 2, "talk_min": 52}}, "Mitchell Huisman": {"2026-03-24": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-03-25": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-03-26": {"calls": 1, "meetings": 4, "talk_min": 0}, "2026-03-27": {"calls": 4, "meetings": 3, "talk_min": 4}, "2026-03-30": {"calls": 11, "meetings": 3, "talk_min": 27}, "2026-03-31": {"calls": 4, "meetings": 4, "talk_min": 11}, "2026-04-01": {"calls": 1, "meetings": 4, "talk_min": 5}, "2026-04-02": {"calls": 5, "meetings": 4, "talk_min": 24}, "2026-04-03": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-04-13": {"calls": 2, "meetings": 3, "talk_min": 9}, "2026-04-14": {"calls": 9, "meetings": 5, "talk_min": 15}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 5, "meetings": 3, "talk_min": 16}, "2026-04-17": {"calls": 11, "meetings": 2, "talk_min": 14}, "2026-04-20": {"calls": 16, "meetings": 3, "talk_min": 31}, "2026-04-21": {"calls": 6, "meetings": 2, "talk_min": 6}, "2026-04-22": {"calls": 2, "meetings": 5, "talk_min": 8}}, "Nicky Willems": {"2026-03-24": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-25": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-17": {"calls": 1, "meetings": 3, "talk_min": 10}, "2026-04-20": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 4, "talk_min": 0}}, "Nicola Gobbi": {"2026-03-24": {"calls": 3, "meetings": 3, "talk_min": 4}, "2026-03-25": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 5, "meetings": 4, "talk_min": 14}, "2026-04-08": {"calls": 1, "meetings": 4, "talk_min": 0}, "2026-04-09": {"calls": 5, "meetings": 3, "talk_min": 10}, "2026-04-10": {"calls": 4, "meetings": 3, "talk_min": 11}, "2026-04-13": {"calls": 1, "meetings": 5, "talk_min": 2}, "2026-04-14": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-17": {"calls": 10, "meetings": 4, "talk_min": 26}, "2026-04-20": {"calls": 3, "meetings": 2, "talk_min": 39}, "2026-04-21": {"calls": 1, "meetings": 4, "talk_min": 6}, "2026-04-22": {"calls": 0, "meetings": 6, "talk_min": 0}}, "Paul Vermin": {"2026-03-24": {"calls": 1, "meetings": 3, "talk_min": 11}, "2026-03-25": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-30": {"calls": 1, "meetings": 2, "talk_min": 11}, "2026-03-31": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-15": {"calls": 1, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 1, "meetings": 3, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 4, "talk_min": 0}}, "Ravi van Lent": {"2026-03-24": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-03-25": {"calls": 1, "meetings": 2, "talk_min": 6}, "2026-03-26": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-22": {"calls": 1, "meetings": 3, "talk_min": 29}}, "Seth van Die": {"2026-03-24": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-25": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-27": {"calls": 9, "meetings": 4, "talk_min": 24}, "2026-03-30": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 5, "talk_min": 0}}, "Stefan Hanna": {"2026-03-24": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-03-25": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 1, "meetings": 4, "talk_min": 1}, "2026-04-08": {"calls": 2, "meetings": 6, "talk_min": 29}, "2026-04-09": {"calls": 1, "meetings": 5, "talk_min": 1}, "2026-04-10": {"calls": 3, "meetings": 3, "talk_min": 4}, "2026-04-13": {"calls": 1, "meetings": 4, "talk_min": 1}, "2026-04-14": {"calls": 4, "meetings": 3, "talk_min": 3}, "2026-04-15": {"calls": 4, "meetings": 6, "talk_min": 5}, "2026-04-16": {"calls": 4, "meetings": 5, "talk_min": 2}, "2026-04-17": {"calls": 1, "meetings": 3, "talk_min": 1}, "2026-04-20": {"calls": 2, "meetings": 3, "talk_min": 1}, "2026-04-21": {"calls": 5, "meetings": 3, "talk_min": 20}, "2026-04-22": {"calls": 6, "meetings": 4, "talk_min": 6}}, "Sven van Kampen": {"2026-03-24": {"calls": 5, "meetings": 4, "talk_min": 22}, "2026-03-25": {"calls": 3, "meetings": 3, "talk_min": 32}, "2026-03-26": {"calls": 7, "meetings": 4, "talk_min": 8}, "2026-03-27": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-30": {"calls": 4, "meetings": 4, "talk_min": 22}, "2026-03-31": {"calls": 1, "meetings": 3, "talk_min": 3}, "2026-04-01": {"calls": 1, "meetings": 3, "talk_min": 7}, "2026-04-02": {"calls": 1, "meetings": 4, "talk_min": 1}, "2026-04-03": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-09": {"calls": 1, "meetings": 3, "talk_min": 3}, "2026-04-10": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-13": {"calls": 1, "meetings": 5, "talk_min": 0}, "2026-04-14": {"calls": 1, "meetings": 4, "talk_min": 3}, "2026-04-15": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-20": {"calls": 3, "meetings": 4, "talk_min": 3}, "2026-04-21": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 4, "talk_min": 0}}, "Tom Heringa": {"2026-03-24": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-25": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-31": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-01": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-02": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-03": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 0, "talk_min": 0}}, "Vincent Turner": {"2026-03-24": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-25": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-03-26": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-27": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-03-30": {"calls": 0, "meetings": 3, "talk_min": 0}, "2026-03-31": {"calls": 1, "meetings": 4, "talk_min": 24}, "2026-04-01": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-02": {"calls": 1, "meetings": 5, "talk_min": 7}, "2026-04-03": {"calls": 3, "meetings": 0, "talk_min": 4}, "2026-04-06": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-07": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-08": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-09": {"calls": 0, "meetings": 4, "talk_min": 0}, "2026-04-10": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-13": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-14": {"calls": 0, "meetings": 5, "talk_min": 0}, "2026-04-15": {"calls": 0, "meetings": 2, "talk_min": 0}, "2026-04-16": {"calls": 0, "meetings": 1, "talk_min": 0}, "2026-04-17": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-20": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-21": {"calls": 0, "meetings": 0, "talk_min": 0}, "2026-04-22": {"calls": 0, "meetings": 0, "talk_min": 0}}}};       // kept for parity; not used directly yet
+const HV_DAY_LABELS = ["Tue 24", "Wed 25", "Thu 26", "Fri 27", "Mon 30", "Tue 31", "Wed 1", "Thu 2", "Fri 3", "Mon 6", "Tue 7", "Wed 8", "Thu 9", "Fri 10", "Mon 13", "Tue 14", "Wed 15", "Thu 16", "Fri 17", "Mon 20", "Tue 21", "Wed 22"];
+
+let hvSelected      = new Set(HV_PEOPLE.map(p => p.name));
+let hvSelectedWeeks = new Set(HOURLY_WEEKS);
+let hvSortKey       = "signedVal";
+let hvSortDir       = "desc";
+let hvTableWindow   = "month";  // default: MTD ("total" = 30d)
+
+// Note: TOTALS has no hv_daily yet, so window toggle currently returns the
+// raw 30d HV_PEOPLE regardless of "month" vs "total". The toggle is kept
+// so the UI matches the Call Team layout.
+function hvPeopleForWindow() {
+  return HV_PEOPLE;
+}
+function hvFiltered() { return hvPeopleForWindow().filter(p => hvSelected.has(p.name)); }
+
+function switchHvWindow(which) {
+  hvTableWindow = which;
+  document.querySelectorAll("#hvTableSwitch button").forEach(b => {
+    b.classList.toggle("active", b.dataset.hvwin === which);
+  });
+  updateHvWindowLabel();
+  renderHvKPIs();
+  renderHvTable();
+  renderHvLeaderboards();
+  renderHvCharts();
+}
+
+function updateHvWindowLabel() {
+  if (!TOTALS || !TOTALS.pace) return;
+  const el = document.getElementById("hvWindowLabel");
+  if (!el) return;
+  if (hvTableWindow === "total") {
+    el.textContent = `All 30 Days: ${TOTALS.pace.window_start} → ${TOTALS.pace.today}`;
+  } else {
+    el.textContent = `Month-to-Date: ${TOTALS.pace.month_start} → ${TOTALS.pace.today} (${TOTALS.pace.work_days_elapsed} work days)`;
+  }
+}
+
+function renderHvFilterBar() {
+  const row = document.getElementById("hvFilterRow");
+  row.innerHTML = "";
+  HV_PEOPLE.forEach(p => {
+    const active = hvSelected.has(p.name);
+    const btn = document.createElement("button");
+    btn.className = "filter-btn";
+    btn.style.background = active ? p.color : "#ecf0f1";
+    btn.style.color = active ? "#fff" : "#2c3e50";
+    btn.innerHTML = '<span class="dot" style="background:' + (active ? "#fff" : p.color) + '"></span>' + p.name;
+    btn.onclick = () => hvToggle(p.name);
+    row.appendChild(btn);
+  });
+  document.getElementById("hvFilterStatus").textContent =
+    hvSelected.size === 0 ? "No AMs selected"
+    : hvSelected.size === HV_PEOPLE.length ? "All " + HV_PEOPLE.length + " AMs selected"
+    : hvSelected.size + " of " + HV_PEOPLE.length + " AMs selected";
+}
+function hvToggle(name) {
+  if (hvSelected.has(name)) hvSelected.delete(name); else hvSelected.add(name);
+  renderHvAll();
+}
+function hvSelectAll()  { hvSelected = new Set(HV_PEOPLE.map(p=>p.name)); renderHvAll(); }
+function hvSelectNone() { hvSelected = new Set(); renderHvAll(); }
+
+function renderHvKPIs() {
+  const F = hvFiltered();
+  if (F.length === 0) {
+    document.getElementById("hvKpiCards").innerHTML =
+      '<div class="empty-state" style="grid-column:1/-1"><span class="ic">👥</span>Select one or more AMs above to see the data.</div>';
+    return;
+  }
+  const t = {
+    calls: F.reduce((s,p)=>s+p.totalCalls,0),
+    talk: F.reduce((s,p)=>s+p.talkMin,0),
+    sent: F.reduce((s,p)=>s+p.sentCnt,0),
+    sentVal: F.reduce((s,p)=>s+p.sentValEx,0),
+    signed: F.reduce((s,p)=>s+p.signedCnt,0),
+    signedVal: F.reduce((s,p)=>s+p.signedVal,0),
+    conv: F.reduce((s,p)=>s+p.convertedCnt,0),
+    convVal: F.reduce((s,p)=>s+p.convertedVal,0),
+    mtdSignedEx: F.reduce((s,p)=>s+p.mtdSignedEx,0),
+    mtdSignedIncl: F.reduce((s,p)=>s+p.mtdSignedIncl,0),
+    lost: F.reduce((s,p)=>s+p.lostCnt,0),
+  };
+  const n = F.length;
+  const avgCallsDay = (t.calls / WORKING_DAYS).toFixed(0);
+  document.getElementById("hvKpiCards").innerHTML = `
+    <div class="card green"><div class="value">${fmt(t.calls)}</div><div class="label">Total Calls</div><div class="sub">${avgCallsDay}/day across ${n} AM${n===1?"":"s"}</div></div>
+    <div class="card green"><div class="value">${fmt(t.talk)}</div><div class="label">Talk Minutes</div><div class="sub">${Math.round(t.talk/60)} total talk hours</div></div>
+    <div class="card blue"><div class="value">${t.sent}</div><div class="label">Quotes Sent</div><div class="sub">${eur(t.sentVal)} ex-VAT</div></div>
+    <div class="card green"><div class="value">${t.signed}</div><div class="label">Quotes Signed</div><div class="sub">${eur(t.signedVal)} ex-VAT</div></div>
+    <div class="card blue"><div class="value">${eur(t.convVal)}</div><div class="label">Converted Revenue</div><div class="sub">${t.conv} deals</div></div>
+    <div class="card yellow"><div class="value">${t.conv}</div><div class="label">Converted</div><div class="sub">${eur(t.convVal)} ex-VAT</div></div>
+    <div class="card blue"><div class="value">${eur(t.mtdSignedEx)}</div><div class="label">MTD Signed (April)</div><div class="sub">${eur(t.mtdSignedIncl)} incl. VAT</div></div>
+  `;
+}
+
+const HV_COLS = [
+  {key: "name",            label: "Account Manager", sortable: true},
+  {key: "totalCalls",      label: "Calls",           sortable: true},
+  {key: "__spark",         label: "Trend",           sortable: false},
+  {key: "talkMin",         label: "Talk Time",       sortable: true},
+  {key: "sentCnt",         label: "Quotes Sent",     sortable: true},
+  {key: "signedCnt",       label: "Quotes Signed",   sortable: true},
+  {key: "sentToSigned",    label: "Sign Rate",       sortable: true},
+  {key: "convertedCnt",    label: "Converted",       sortable: true},
+  {key: "convertedVal",    label: "Converted Rev",   sortable: true},
+  {key: "lostCnt",         label: "Marked Lost",     sortable: true},
+];
+
+function renderHvTable() {
+  const F = hvFiltered();
+  if (F.length === 0) {
+    document.getElementById("hvCompareHead").innerHTML = "";
+    document.getElementById("hvCompareBody").innerHTML =
+      `<tr><td colspan="${HV_COLS.length}" class="empty-state" style="border:none">No AMs selected.</td></tr>`;
+    return;
+  }
+  const medSigned = median(F.map(p=>p.signedCnt));
+  const medCalls  = median(F.map(p=>p.totalCalls));
+  const medSent   = median(F.map(p=>p.sentCnt));
+  const medConv   = median(F.map(p=>p.convertedVal));
+  const rateArr   = F.filter(p=>p.sentCnt>0).map(p=>p.sentToSigned);
+  const medRate   = median(rateArr) || 1;
+
+  document.getElementById("hvCompareHead").innerHTML = HV_COLS.map(c => {
+    const ind = c.sortable && c.key === hvSortKey ? ' <span class="sort-ind">' + (hvSortDir==="asc"?"▲":"▼") + '</span>' : '';
+    const onclick = c.sortable ? ` onclick="hvSetSort('${c.key}')"` : "";
+    return `<th${onclick}>${c.label}${ind}</th>`;
+  }).join("");
+
+  const sorted = [...F].sort((a,b) => {
+    const av = a[hvSortKey], bv = b[hvSortKey];
+    if (typeof av === "string") return hvSortDir==="asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    return hvSortDir==="asc" ? av-bv : bv-av;
+  });
+
+  document.getElementById("hvCompareBody").innerHTML = sorted.map(p => {
+    const rate = p.sentCnt ? p.sentToSigned.toFixed(0) + "%" : "—";
+    const rateCls = p.sentCnt ? clsRate(p.sentToSigned, medRate*1.3, medRate*0.7) : "cell-gray";
+    return `
+      <tr>
+        <td class="name-cell"><strong>${p.name}</strong></td>
+        <td class="${clsSigned(p.totalCalls, medCalls)}"><span class="big">${p.totalCalls}</span><span class="small">${p.callsPerDay.toFixed(1)}/day</span></td>
+        <td>${sparkSvg(p.callsWeekly, p.color)}</td>
+        <td class="cell-gray"><span class="big">${fmt(p.talkMin)}</span><span class="small">min</span></td>
+        <td class="${clsSigned(p.sentCnt, medSent)}"><span class="big">${p.sentCnt}</span><span class="small">${eur(p.sentValEx)}</span></td>
+        <td class="${clsSigned(p.signedCnt, medSigned)}"><span class="big">${p.signedCnt}</span><span class="small">${eur(p.signedVal)}</span></td>
+        <td class="${rateCls}"><span class="big">${rate}</span><span class="small">sent→signed</span></td>
+        <td class="cell-gray"><span class="big">${p.convertedCnt}</span><span class="small">${eur(p.convertedVal)}</span></td>
+        <td class="${clsSigned(p.convertedVal, medConv)}"><span class="big">${eur(p.convertedVal)}</span><span class="small">${p.convertedCnt} deals</span></td>
+        <td class="cell-gray"><span class="big">${p.lostCnt}</span><span class="small">in window</span></td>
+      </tr>`;
+  }).join("");
+}
+
+function hvSetSort(key) {
+  if (hvSortKey === key) hvSortDir = hvSortDir === "asc" ? "desc" : "asc";
+  else { hvSortKey = key; hvSortDir = key === "name" ? "asc" : "desc"; }
+  renderHvTable();
+}
+
+function renderHvLeaderboards() {
+  const F = hvFiltered();
+  const ids = ["hv-lb-calls","hv-lb-signed","hv-lb-revenue","hv-lb-sent","hv-lb-converted-revenue","hv-lb-mtd-ex","hv-lb-mtd-incl","hv-lb-talk","hv-lb-avgdur"];
+  if (F.length === 0) {
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML =
+        '<tr><td style="text-align:center;padding:20px;color:var(--gray)">No AMs selected</td></tr>';
+    });
+    return;
+  }
+  const rank = (key) => F.map(p=>[p.name, p[key]]).sort((a,b) => b[1]-a[1]);
+  renderLeaderboard("hv-lb-calls",             rank("totalCalls"),    v => fmt(v),        "#27ae60");
+  renderLeaderboard("hv-lb-signed",            rank("signedCnt"),     v => v,              "#27ae60");
+  renderLeaderboard("hv-lb-revenue",           rank("signedVal"),     eur,                 "#2980b9");
+  renderLeaderboard("hv-lb-sent",              rank("sentCnt"),       v => fmt(v),        "#27ae60");
+  renderLeaderboard("hv-lb-converted-revenue", rank("convertedVal"),  eur,                 "#3498db");
+  renderLeaderboard("hv-lb-mtd-ex",            rank("mtdSignedEx"),   eur,                 "#2980b9");
+  renderLeaderboard("hv-lb-mtd-incl",          rank("mtdSignedIncl"), eur,                 "#8e44ad");
+  renderLeaderboard("hv-lb-talk",              rank("talkMin"),       v => fmt(v),        "#27ae60");
+  renderLeaderboard("hv-lb-avgdur",            rank("avgDurMin"),     v => v.toFixed(1),   "#2980b9");
+}
+
+let hvTrendChart, hvMeetingsChart, hvScatterChart, hvRateChart;
+function destroyHvCharts() {
+  [hvTrendChart, hvMeetingsChart, hvScatterChart, hvRateChart].forEach(c => { if (c) c.destroy(); });
+}
+function renderHvCharts() {
+  destroyHvCharts();
+  const F = hvFiltered();
+  if (F.length === 0) return;
+
+  const callsDS = F.map(p => ({
+    label: p.name, data: p.callsWeekly,
+    borderColor: p.color, backgroundColor: p.color,
+    tension: 0.3, pointRadius: 3, borderWidth: 2,
+  }));
+  hvTrendChart = new Chart(document.getElementById("hvTrendChart"), {
+    type: "line",
+    data: { labels: WEEK_LABELS, datasets: callsDS },
+    options: {
+      responsive: true, interaction: {mode:"index", intersect:false},
+      plugins: { legend: {position:"right", labels:{boxWidth:12, font:{size:11}}} },
+      scales: { y: { beginAtZero:true, title:{display:true, text:"Calls per week"} } }
+    }
+  });
+
+  const byMeetings = [...F].sort((a,b) => b.meetingsTotal - a.meetingsTotal);
+  const meetDS = byMeetings.map(p => ({
+    label: p.name, data: p.meetingsWeekly,
+    borderColor: p.color, backgroundColor: p.color,
+    tension: 0.3, pointRadius: 3, borderWidth: 2,
+  }));
+  hvMeetingsChart = new Chart(document.getElementById("hvMeetingsChart"), {
+    type: "line",
+    data: { labels: WEEK_LABELS, datasets: meetDS },
+    options: {
+      responsive: true, interaction: {mode:"index", intersect:false},
+      plugins: { legend: {position:"right", labels:{boxWidth:12, font:{size:11}}} },
+      scales: { y: { beginAtZero:true, title:{display:true, text:"Meetings per week"} } }
+    }
+  });
+
+  const bubbleData = F.map(p => ({
+    x: p.totalCalls, y: p.signedCnt,
+    r: Math.max(4, Math.sqrt(p.signedVal)/30),
+    name: p.name, color: p.color,
+  }));
+  hvScatterChart = new Chart(document.getElementById("hvScatterChart"), {
+    type: "bubble",
+    data: { datasets: [{
+      data: bubbleData,
+      backgroundColor: ctx => (ctx.raw.color || "#2980b9") + "99",
+      borderColor: ctx => ctx.raw.color || "#2980b9",
+    }]},
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {display:false},
+        tooltip: { callbacks: { label: ctx => `${ctx.raw.name}: ${ctx.raw.x} calls, ${ctx.raw.y} signed` } }
+      },
+      scales: {
+        x: { title:{display:true, text:"Total calls"}, beginAtZero:true },
+        y: { title:{display:true, text:"Quotes signed"}, beginAtZero:true }
+      }
+    }
+  });
+
+  const rateItems = F.filter(p => p.sentCnt > 0)
+    .map(p => ({name:p.name, rate:p.sentToSigned, color:p.color}))
+    .sort((a,b) => b.rate - a.rate);
+  hvRateChart = new Chart(document.getElementById("hvRateChart"), {
+    type: "bar",
+    data: {
+      labels: rateItems.map(r => r.name),
+      datasets: [{
+        data: rateItems.map(r => r.rate),
+        backgroundColor: rateItems.map(r => r.color),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: "y", responsive: true,
+      plugins: { legend: {display:false} },
+      scales: { x: { beginAtZero:true, title:{display:true, text:"% signed / created"} } }
+    }
+  });
+}
+
+function renderHvHeatmap() {
+  const F = hvFiltered();
+  const table = document.getElementById("hvHeatmapTable");
+  if (F.length === 0) {
+    table.innerHTML = '<tr><td class="empty-state" style="border:none">No AMs selected</td></tr>';
+    return;
+  }
+  let maxCell = 0;
+  const rows = F.map(p => {
+    const cells = p.callsWeekly.map((c, i) => c + (p.meetingsWeekly[i] || 0));
+    cells.forEach(v => { if (v > maxCell) maxCell = v; });
+    const total = cells.reduce((s,v)=>s+v, 0);
+    return { name: p.name, cells, total, color: p.color };
+  });
+  rows.sort((a,b) => b.total - a.total);
+  const colTotals = WEEK_LABELS.map((_, i) => rows.reduce((s,r) => s + r.cells[i], 0));
+  const grandTotal = colTotals.reduce((s,v)=>s+v, 0);
+
+  function heatColor(v) {
+    if (maxCell === 0 || v === 0) return "#f5f5f5";
+    const t = v / maxCell;
+    return `hsl(145, 55%, ${94 - t * 52}%)`;
+  }
+  function textColor(v) {
+    return (maxCell > 0 && v / maxCell > 0.55) ? "#fff" : "#2c3e50";
+  }
+
+  let html = "<thead><tr><th>Account Manager</th>";
+  WEEK_LABELS.forEach(w => html += `<th>${w}</th>`);
+  html += '<th style="background:#34495e">Total</th></tr></thead><tbody>';
+
+  rows.forEach(r => {
+    html += `<tr><td class="name-cell">${r.name}</td>`;
+    r.cells.forEach(v => {
+      html += `<td style="background:${heatColor(v)};color:${textColor(v)}"><span class="cell-num">${v}</span></td>`;
+    });
+    html += `<td class="total-cell">${r.total}</td></tr>`;
+  });
+
+  html += '<tr><td class="name-cell" style="background:#34495e;color:#fff">Column total</td>';
+  colTotals.forEach(v => html += `<td class="total-cell">${v}</td>`);
+  html += `<td class="total-cell" style="background:#34495e;color:#fff">${grandTotal}</td></tr></tbody>`;
+
+  table.innerHTML = html;
+}
+
+function renderHvWeekFilterBar() {
+  const row = document.getElementById("hvWeekFilterRow");
+  row.innerHTML = "";
+  HOURLY_WEEKS.forEach((w, i) => {
+    const active = hvSelectedWeeks.has(w);
+    const btn = document.createElement("button");
+    btn.className = "filter-btn";
+    btn.style.background = active ? "#2980b9" : "#ecf0f1";
+    btn.style.color = active ? "#fff" : "#2c3e50";
+    btn.innerHTML = '<span class="dot" style="background:' + (active ? "#fff" : "#2980b9") + '"></span>' + "Week of " + WEEK_LABELS[i];
+    btn.onclick = () => hvToggleWeek(w);
+    row.appendChild(btn);
+  });
+  document.getElementById("hvWeekFilterStatus").textContent =
+    hvSelectedWeeks.size === 0 ? "No weeks selected"
+    : hvSelectedWeeks.size === HOURLY_WEEKS.length ? "All " + HOURLY_WEEKS.length + " weeks selected"
+    : hvSelectedWeeks.size + " of " + HOURLY_WEEKS.length + " weeks selected";
+}
+function hvToggleWeek(w) {
+  if (hvSelectedWeeks.has(w)) hvSelectedWeeks.delete(w); else hvSelectedWeeks.add(w);
+  renderHvWeekFilterBar();
+  renderHvHourlyHeatmap();
+}
+function hvWeeksSelectAll()  { hvSelectedWeeks = new Set(HOURLY_WEEKS); renderHvWeekFilterBar(); renderHvHourlyHeatmap(); }
+function hvWeeksSelectNone() { hvSelectedWeeks = new Set(); renderHvWeekFilterBar(); renderHvHourlyHeatmap(); }
+
+function renderHvHourlyHeatmap() {
+  const table = document.getElementById("hvHourlyHeatmap");
+  const F = hvFiltered();
+
+  if (F.length === 0 || hvSelectedWeeks.size === 0) {
+    const msg = F.length === 0 ? "No AMs selected" : "No weeks selected";
+    table.innerHTML = '<tr><td class="empty-state" style="border:none">' + msg + '</td></tr>';
+    return;
+  }
+
+  const rows = F.map(p => {
+    const weeks = HV_HOURLY[p.name] || {};
+    const cells = HOURS.map(h => {
+      let total = 0;
+      hvSelectedWeeks.forEach(w => {
+        const wData = weeks[w] || {};
+        total += wData[String(h)] || 0;
+      });
+      return Math.round(total);
+    });
+    const rowTotal = cells.reduce((s,v)=>s+v, 0);
+    return { name: p.name, cells, rowTotal };
+  });
+  rows.sort((a,b) => b.rowTotal - a.rowTotal);
+
+  let maxCell = 0;
+  rows.forEach(r => r.cells.forEach(v => { if (v > maxCell) maxCell = v; }));
+  const colTotals = HOURS.map((_, i) => rows.reduce((s,r) => s + r.cells[i], 0));
+  const grandTotal = colTotals.reduce((s,v)=>s+v, 0);
+
+  function heatColor(v) {
+    if (maxCell === 0 || v === 0) return "#f5f5f5";
+    const t = v / maxCell;
+    return `hsl(145, 55%, ${94 - t * 52}%)`;
+  }
+  function textColor(v) {
+    return (maxCell > 0 && v / maxCell > 0.55) ? "#fff" : "#2c3e50";
+  }
+
+  let html = '<thead><tr><th>Account Manager</th>';
+  HOURS.forEach(h => html += `<th>${String(h).padStart(2,"0")}:00</th>`);
+  html += '<th style="background:#34495e">Row total</th></tr></thead><tbody>';
+
+  rows.forEach(r => {
+    html += `<tr><td class="name-cell">${r.name}</td>`;
+    r.cells.forEach(v => {
+      html += `<td style="background:${heatColor(v)};color:${textColor(v)}"><span class="cell-num">${v || ""}</span></td>`;
+    });
+    html += `<td class="total-cell">${r.rowTotal}</td></tr>`;
+  });
+
+  html += '<tr><td class="name-cell" style="background:#34495e;color:#fff">Column total</td>';
+  colTotals.forEach(v => html += `<td class="total-cell">${v}</td>`);
+  html += `<td class="total-cell" style="background:#34495e;color:#fff">${grandTotal}</td></tr></tbody>`;
+
+  table.innerHTML = html;
+}
+
+function renderHvAll() {
+  renderHvFilterBar();
+  renderHvWeekFilterBar();
+  renderHvKPIs();
+  renderHvTable();
+  renderHvLeaderboards();
+  renderHvCharts();
+  renderHvHeatmap();
+  renderHvHourlyHeatmap();
+}
+
 renderAll();
 renderTotals();
+renderHvFilterBar();
+renderHvAll();
 updateCallWindowLabel();
 updateSupWindowLabel();
+updateHvWindowLabel();
 </script>
 </body>
 </html>
