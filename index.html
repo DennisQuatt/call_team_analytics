@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">April 16 – April 22, 2026 &nbsp;|&nbsp; 7-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 12:43 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 12:53 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -202,12 +202,6 @@
 
 <h2 id="supTotalsHeading">🎧 Sales Support Totals</h2>
 <div class="cards" id="totalsSupportCards"></div>
-
-<h2>💰 Revenue Pace — Call vs HV <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(side-by-side, same €150K/AM/month target)</span></h2>
-<div class="chart-row">
-  <div class="chart-box"><h3 style="color:#2980b9">📞 Call Team</h3><div id="topPaceCallBar" style="margin-top:10px"></div></div>
-  <div class="chart-box"><h3 style="color:#8e44ad">🏠 HV Team</h3><div id="topPaceHvBar" style="margin-top:10px"></div></div>
-</div>
 
 <h2>🎯 Tracking — Call Team <span style="font-size:0.75rem;font-weight:400;color:var(--gray)" id="callTargetLabel"></span></h2>
 <div id="trackingCallPaceBar" style="margin-bottom:18px"></div>
@@ -555,7 +549,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 23, 2026 at 12:43 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 23, 2026 at 12:53 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -1515,31 +1509,50 @@ function renderTotals() {
     `(target: €${fmt(Math.round(hvPersonalTarget/1000))}K/AM ex-VAT for this window, FTE-scaled — same as Call team)`;
 
   // ---- Pace bars ----
-  // Fill bar = % of team revenue target achieved (capped at 100% for the green fill,
-  // but the label always shows the real number so you can see both direction and
-  // overshoot). Colour stays green — these bars are informational.
-  const callTeamTarget = callPersonalTarget * TOTALS.call_names.reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
-  const hvTeamTarget   = hvPersonalTarget  * (TOTALS.hv_names || []).reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
-  const callTeamRev    = cTotals.signed_val;
-  const hvTeamRev      = hvTotals.signed_val;
-  const callTeamPct    = callTeamTarget > 0 ? Math.round(callTeamRev / callTeamTarget * 100) : 0;
-  const hvTeamPct      = hvTeamTarget   > 0 ? Math.round(hvTeamRev   / hvTeamTarget   * 100) : 0;
+  // Tracking bars are ALWAYS MTD progress against the full-month team target (independent
+  // of the window toggle). Green fill = MTD revenue / full-month team target. The dark
+  // vertical marker shows "where we should be" given calendar days elapsed in the month —
+  // so green ahead of marker = ahead of pace, green behind marker = behind pace.
+  const monthStart = TOTALS.pace.month_start;
+  const today      = TOTALS.pace.today;
+  const sumMtdSignedVal = (dailyBy, names) => {
+    let tot = 0;
+    for (const n of names) {
+      const daily = dailyBy[n] || {};
+      for (const day in daily) {
+        if (day >= monthStart && day < today) tot += (daily[day].signed_val || 0);
+      }
+    }
+    return tot;
+  };
+  const callTeamMtdRev = sumMtdSignedVal(TOTALS.call_daily,     TOTALS.call_names);
+  const hvTeamMtdRev   = sumMtdSignedVal(TOTALS.hv_daily || {}, TOTALS.hv_names || []);
 
-  const paceBarHtml = (label, pct) => `
-    <div style="background:#ecf0f1;border-radius:8px;overflow:hidden;position:relative;height:32px">
-      <div style="background:#27ae60;height:100%;width:${Math.min(100,pct)}%;transition:width 0.3s"></div>
+  const callFteSum = TOTALS.call_names.reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
+  const hvFteSum   = (TOTALS.hv_names || []).reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
+  const callFullMonthTarget = TOTALS.targets.call_revenue_monthly * callFteSum;
+  const hvFullMonthTarget   = TOTALS.targets.call_revenue_monthly * hvFteSum;
+
+  const callMtdPct = callFullMonthTarget > 0 ? (callTeamMtdRev / callFullMonthTarget * 100) : 0;
+  const hvMtdPct   = hvFullMonthTarget   > 0 ? (hvTeamMtdRev   / hvFullMonthTarget   * 100) : 0;
+
+  // Month elapsed marker (calendar days)
+  const monthPacePct = Math.round(TOTALS.pace.days_elapsed_month / TOTALS.pace.days_in_month * 100);
+  const dayOfMonth   = TOTALS.pace.days_elapsed_month;
+
+  const paceBarHtml = (label, fillPct, markerPct) => `
+    <div style="background:#ecf0f1;border-radius:8px;overflow:hidden;position:relative;height:36px">
+      <div style="background:#27ae60;height:100%;width:${Math.min(100,fillPct)}%;transition:width 0.3s"></div>
+      <div title="Today's pace marker (calendar-day progress through the month)" style="position:absolute;top:0;bottom:0;left:${Math.min(100,markerPct)}%;width:3px;background:#2c3e50;box-shadow:0 0 0 2px rgba(255,255,255,0.6)"></div>
       <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:#2c3e50;font-weight:600;text-align:center;padding:0 10px">${label}</div>
-    </div>`;
-  const callBarLabel = `${win.label} · €${fmt(Math.round(callTeamRev/1000))}K / €${fmt(Math.round(callTeamTarget/1000))}K (${callTeamPct}%) · €${fmt(Math.round(callPersonalTarget/1000))}K per AM`;
-  const hvBarLabel   = `${win.label} · €${fmt(Math.round(hvTeamRev/1000))}K / €${fmt(Math.round(hvTeamTarget/1000))}K (${hvTeamPct}%) · €${fmt(Math.round(hvPersonalTarget/1000))}K per AM`;
+    </div>
+    <div style="font-size:0.7rem;color:var(--gray);margin-top:4px;text-align:right">— vertical line = today's pace (${monthPacePct}% of month elapsed)</div>`;
 
-  // Top-of-page side-by-side bars (dedicated summary block)
-  document.getElementById("topPaceCallBar").innerHTML = paceBarHtml(callBarLabel, callTeamPct);
-  document.getElementById("topPaceHvBar").innerHTML   = paceBarHtml(hvBarLabel,   hvTeamPct);
+  const callBarLabel = `MTD · €${fmt(Math.round(callTeamMtdRev/1000))}K / €${fmt(Math.round(callFullMonthTarget/1000))}K full month (${Math.round(callMtdPct)}%) · day ${dayOfMonth}/${TOTALS.pace.days_in_month}`;
+  const hvBarLabel   = `MTD · €${fmt(Math.round(hvTeamMtdRev/1000))}K / €${fmt(Math.round(hvFullMonthTarget/1000))}K full month (${Math.round(hvMtdPct)}%) · day ${dayOfMonth}/${TOTALS.pace.days_in_month}`;
 
-  // In-section bars (inside each team's Tracking section)
-  document.getElementById("trackingCallPaceBar").innerHTML = paceBarHtml(callBarLabel, callTeamPct);
-  document.getElementById("trackingHvPaceBar").innerHTML   = paceBarHtml(hvBarLabel,   hvTeamPct);
+  document.getElementById("trackingCallPaceBar").innerHTML = paceBarHtml(callBarLabel, callMtdPct, monthPacePct);
+  document.getElementById("trackingHvPaceBar").innerHTML   = paceBarHtml(hvBarLabel,   hvMtdPct,   monthPacePct);
 
   // ---- Tracking lists ----
   const renderTrackList = (list, elId, color) => {
