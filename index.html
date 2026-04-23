@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 24 – April 22, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 13:40 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 13:54 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -542,7 +542,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 23, 2026 at 13:40 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 23, 2026 at 13:54 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -1493,19 +1493,16 @@ function renderTotals() {
     <div class="card yellow"><div class="value">${sTotals.hvs}</div><div class="label">HVs Scheduled</div><div class="sub">scheduled on deals</div></div>
   `;
 
-  // ---- Target labels ----
-  // Call team: target pro-rated to the selected window (unchanged).
-  // HV team:   target is always €150K/AM for the FULL MONTH, FTE-scaled (Dennis 2026-04-23).
-  //            Fill = HV MTD revenue / full-month team target.
-  const callPersonalTarget = TOTALS.targets.call_revenue_monthly * (win.days / TOTALS.pace.days_in_month);
-  const hvFullMonthPerAm   = TOTALS.targets.call_revenue_monthly;  // €150K/AM, full month
+  // ---- Target labels + Pace bars ----
+  // Both Call and HV teams: target is €150K/AM for the FULL MONTH, FTE-scaled.
+  // Fill = team MTD revenue / (per-AM target × sum of FTEs).
+  // Bar label also shows the team's MTD revenue-per-AM average for quick context.
+  const fullMonthPerAm = TOTALS.targets.call_revenue_monthly;  // €150K/AM, full month
   document.getElementById("callTargetLabel").textContent =
-    `(target: €${fmt(Math.round(callPersonalTarget/1000))}K/AM ex-VAT for this window, FTE-scaled)`;
+    `(target: €${fmt(Math.round(fullMonthPerAm/1000))}K/AM ex-VAT for this month, FTE-scaled)`;
   document.getElementById("hvTargetLabel").textContent =
-    `(target: €${fmt(Math.round(hvFullMonthPerAm/1000))}K/AM ex-VAT for this month, FTE-scaled)`;
+    `(target: €${fmt(Math.round(fullMonthPerAm/1000))}K/AM ex-VAT for this month, FTE-scaled)`;
 
-  // ---- Pace bars ----
-  // Compute HV MTD revenue + full-month team target for the HV bar fill.
   const monthStart = TOTALS.pace.month_start;
   const todayIso   = TOTALS.pace.today;
   const sumMtdSignedVal = (dailyBy, names) => {
@@ -1518,22 +1515,29 @@ function renderTotals() {
     }
     return tot;
   };
+  const callTeamMtdRev = sumMtdSignedVal(TOTALS.call_daily,     TOTALS.call_names);
   const hvTeamMtdRev   = sumMtdSignedVal(TOTALS.hv_daily || {}, TOTALS.hv_names || []);
+  const callFteSum     = TOTALS.call_names.reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
   const hvFteSum       = (TOTALS.hv_names || []).reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
-  const hvFullMonthTeamTarget = hvFullMonthPerAm * hvFteSum;
-  const hvMtdPct       = hvFullMonthTeamTarget > 0 ? Math.round(hvTeamMtdRev / hvFullMonthTeamTarget * 100) : 0;
+  const callFullMonthTeamTarget = fullMonthPerAm * callFteSum;
+  const hvFullMonthTeamTarget   = fullMonthPerAm * hvFteSum;
+  const callMtdPct = callFullMonthTeamTarget > 0 ? Math.round(callTeamMtdRev / callFullMonthTeamTarget * 100) : 0;
+  const hvMtdPct   = hvFullMonthTeamTarget   > 0 ? Math.round(hvTeamMtdRev   / hvFullMonthTeamTarget   * 100) : 0;
+  // "Avg per AM MTD" = team MTD revenue divided by the number of people on the team (raw headcount).
+  // This gives "on average, each AM signed €X this month to date".
+  const callAvgPerAmMtd = TOTALS.call_names.length > 0 ? (callTeamMtdRev / TOTALS.call_names.length) : 0;
+  const hvAvgPerAmMtd   = (TOTALS.hv_names || []).length > 0 ? (hvTeamMtdRev / TOTALS.hv_names.length) : 0;
 
-  const pctThrough = Math.round(win.days / TOTALS.pace.days_in_month * 100);
   const paceBarHtml = (label, pct) => `
     <div style="background:#ecf0f1;border-radius:8px;overflow:hidden;position:relative;height:32px">
       <div style="background:#27ae60;height:100%;width:${Math.min(100,pct)}%;transition:width 0.3s"></div>
       <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:#2c3e50;font-weight:600;text-align:center;padding:0 10px">${label}</div>
     </div>`;
   document.getElementById("trackingCallPaceBar").innerHTML = paceBarHtml(
-    `${win.label} · ${win.days} days · Call revenue target: €${fmt(Math.round(callPersonalTarget/1000))}K/AM (€150K/month pro-rated)`, pctThrough
+    `MTD · €${fmt(Math.round(callTeamMtdRev/1000))}K / €${fmt(Math.round(callFullMonthTeamTarget/1000))}K team target (${callMtdPct}%) · €${fmt(Math.round(callAvgPerAmMtd/1000))}K avg/AM MTD · €${fmt(Math.round(fullMonthPerAm/1000))}K/AM target`, callMtdPct
   );
   document.getElementById("trackingHvPaceBar").innerHTML = paceBarHtml(
-    `MTD · €${fmt(Math.round(hvTeamMtdRev/1000))}K / €${fmt(Math.round(hvFullMonthTeamTarget/1000))}K team target (${hvMtdPct}%) · €${fmt(Math.round(hvFullMonthPerAm/1000))}K/AM this month`, hvMtdPct
+    `MTD · €${fmt(Math.round(hvTeamMtdRev/1000))}K / €${fmt(Math.round(hvFullMonthTeamTarget/1000))}K team target (${hvMtdPct}%) · €${fmt(Math.round(hvAvgPerAmMtd/1000))}K avg/AM MTD · €${fmt(Math.round(fullMonthPerAm/1000))}K/AM target`, hvMtdPct
   );
 
   // ---- Tracking lists ----
