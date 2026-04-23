@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 24 – April 22, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 13:19 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 23, 2026 at 13:40 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -224,13 +224,6 @@
   <div class="chart-box"><h3 style="color:#27ae60">🏆 Top 30%<span id="supOnCount" style="color:var(--gray);font-weight:400"></span></h3><div id="supOnList"></div></div>
   <div class="chart-box"><h3 style="color:#2980b9">📊 Mid 40%<span id="supBorCount" style="color:var(--gray);font-weight:400"></span></h3><div id="supBorList"></div></div>
   <div class="chart-box"><h3 style="color:#e74c3c">📉 Bottom 30%<span id="supOffCount" style="color:var(--gray);font-weight:400"></span></h3><div id="supOffList"></div></div>
-</div>
-
-<h2>📊 Percentile Ranking — Call Team <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(by signed revenue in selected window)</span></h2>
-<div class="chart-row">
-  <div class="chart-box"><h3 style="color:#27ae60">🏆 Top 20%<span id="callPctTopCount" style="color:var(--gray);font-weight:400"></span></h3><div id="callPctTopList"></div></div>
-  <div class="chart-box"><h3 style="color:#2980b9">📊 Mid 60%<span id="callPctMidCount" style="color:var(--gray);font-weight:400"></span></h3><div id="callPctMidList"></div></div>
-  <div class="chart-box"><h3 style="color:#e74c3c">📉 Bottom 20%<span id="callPctBotCount" style="color:var(--gray);font-weight:400"></span></h3><div id="callPctBotList"></div></div>
 </div>
 
 <h2>📊 Percentile Ranking — Sales Support <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(composite score: calls + talk + meetings + HVs, FTE-adjusted)</span></h2>
@@ -549,7 +542,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 23, 2026 at 13:19 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 23, 2026 at 13:40 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -1501,14 +1494,35 @@ function renderTotals() {
   `;
 
   // ---- Target labels ----
+  // Call team: target pro-rated to the selected window (unchanged).
+  // HV team:   target is always €150K/AM for the FULL MONTH, FTE-scaled (Dennis 2026-04-23).
+  //            Fill = HV MTD revenue / full-month team target.
   const callPersonalTarget = TOTALS.targets.call_revenue_monthly * (win.days / TOTALS.pace.days_in_month);
-  const hvPersonalTarget   = TOTALS.targets.call_revenue_monthly * (win.days / TOTALS.pace.days_in_month);  // same target as call team
+  const hvFullMonthPerAm   = TOTALS.targets.call_revenue_monthly;  // €150K/AM, full month
   document.getElementById("callTargetLabel").textContent =
     `(target: €${fmt(Math.round(callPersonalTarget/1000))}K/AM ex-VAT for this window, FTE-scaled)`;
   document.getElementById("hvTargetLabel").textContent =
-    `(target: €${fmt(Math.round(hvPersonalTarget/1000))}K/AM ex-VAT for this window, FTE-scaled — same as Call team)`;
+    `(target: €${fmt(Math.round(hvFullMonthPerAm/1000))}K/AM ex-VAT for this month, FTE-scaled)`;
 
   // ---- Pace bars ----
+  // Compute HV MTD revenue + full-month team target for the HV bar fill.
+  const monthStart = TOTALS.pace.month_start;
+  const todayIso   = TOTALS.pace.today;
+  const sumMtdSignedVal = (dailyBy, names) => {
+    let tot = 0;
+    for (const n of names) {
+      const d = dailyBy[n] || {};
+      for (const day in d) {
+        if (day >= monthStart && day < todayIso) tot += (d[day].signed_val || 0);
+      }
+    }
+    return tot;
+  };
+  const hvTeamMtdRev   = sumMtdSignedVal(TOTALS.hv_daily || {}, TOTALS.hv_names || []);
+  const hvFteSum       = (TOTALS.hv_names || []).reduce((s,n)=>s+(TOTALS.fte[n]||1.0),0);
+  const hvFullMonthTeamTarget = hvFullMonthPerAm * hvFteSum;
+  const hvMtdPct       = hvFullMonthTeamTarget > 0 ? Math.round(hvTeamMtdRev / hvFullMonthTeamTarget * 100) : 0;
+
   const pctThrough = Math.round(win.days / TOTALS.pace.days_in_month * 100);
   const paceBarHtml = (label, pct) => `
     <div style="background:#ecf0f1;border-radius:8px;overflow:hidden;position:relative;height:32px">
@@ -1519,7 +1533,7 @@ function renderTotals() {
     `${win.label} · ${win.days} days · Call revenue target: €${fmt(Math.round(callPersonalTarget/1000))}K/AM (€150K/month pro-rated)`, pctThrough
   );
   document.getElementById("trackingHvPaceBar").innerHTML = paceBarHtml(
-    `${win.label} · ${win.days} days · HV revenue target: €${fmt(Math.round(hvPersonalTarget/1000))}K/AM (€150K/month pro-rated)`, pctThrough
+    `MTD · €${fmt(Math.round(hvTeamMtdRev/1000))}K / €${fmt(Math.round(hvFullMonthTeamTarget/1000))}K team target (${hvMtdPct}%) · €${fmt(Math.round(hvFullMonthPerAm/1000))}K/AM this month`, hvMtdPct
   );
 
   // ---- Tracking lists ----
@@ -1620,22 +1634,6 @@ function renderTotals() {
   renderPctList(sBands.top, "supOnList",  "#27ae60", 0,                                     supTrackBuilder);
   renderPctList(sBands.mid, "supBorList", "#2980b9", sBands.top.length,                     supTrackBuilder);
   renderPctList(sBands.bot, "supOffList", "#e74c3c", sBands.top.length + sBands.mid.length, supTrackBuilder);
-
-  // Call percentile by revenue
-  const callPctRows = buildCallPercentileCards(callAgg);
-  const cp = splitPercentile(callPctRows);
-  document.getElementById("callPctTopCount").textContent = ` (${cp.top.length})`;
-  document.getElementById("callPctMidCount").textContent = ` (${cp.mid.length})`;
-  document.getElementById("callPctBotCount").textContent = ` (${cp.bot.length})`;
-  const callPctBuilder = (t, rank) => ({
-    rank,
-    metric_val: `€${fmt(Math.round(t.revenue/1000))}K`,
-    metric_label: "signed (ex-VAT)",
-    sub: `${t.signed} signed · ${t.sent} sent · ${t.calls} calls`,
-  });
-  renderPctList(cp.top, "callPctTopList", "#27ae60", 0, callPctBuilder);
-  renderPctList(cp.mid, "callPctMidList", "#2980b9", cp.top.length, callPctBuilder);
-  renderPctList(cp.bot, "callPctBotList", "#e74c3c", cp.top.length + cp.mid.length, callPctBuilder);
 
   // Support percentile by composite
   const supPctRows = buildSupportPercentileCards(supAgg, win);
@@ -2031,9 +2029,6 @@ let hvSortKey       = "signedVal";
 let hvSortDir       = "desc";
 let hvTableWindow   = "month";  // default: MTD ("total" = 30d)
 
-// Note: TOTALS has no hv_daily yet, so window toggle currently returns the
-// raw 30d HV_PEOPLE regardless of "month" vs "total". The toggle is kept
-// so the UI matches the Call Team layout.
 function hvPeopleForWindow() {
   // When "total" (All 30 Days) — return 30-day baseline shape
   if (hvTableWindow === "total" || !TOTALS || !TOTALS.hv_daily) return HV_PEOPLE;
