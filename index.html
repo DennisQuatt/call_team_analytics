@@ -196,8 +196,17 @@
   .comp-top5-val  { font-weight: 700; color: #fff; white-space: nowrap; }
   .comp-top5-empty { color: #7f8c8d; text-align: center; padding: 6px; font-size: 0.9rem; }
 
-  /* TV mode tweaks: no outer container padding, fill the viewport */
-  body.tv-mode #competitionSection .comp-frame { max-width: none; border-radius: 0; margin: -12px -20px; padding: 22px 30px; aspect-ratio: auto; min-height: calc(100vh - 60px); }
+  /* TV mode tweaks: fill the viewport while preserving 16:9 */
+  body.tv-mode #competitionSection { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 60px); }
+  body.tv-mode #competitionSection .comp-frame {
+    max-width: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 26px 36px;
+    aspect-ratio: 16 / 9;
+    width: min(100vw, calc((100vh - 60px) * 16 / 9));
+    height: min(calc(100vh - 60px), calc(100vw * 9 / 16));
+  }
   body.tv-mode .comp-title { font-size: 2.6rem; }
   body.tv-mode .comp-col-header { font-size: 1.6rem; }
   body.tv-mode .comp-table td.comp-metric-label { font-size: 1.2rem; }
@@ -234,18 +243,18 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 25 – April 23, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 24, 2026 at 14:40 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 24, 2026 at 14:52 CET</p>
 
 <div class="team-switch" role="tablist">
-  <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
+  <button id="btn-team-totals"                 onclick="switchTeam('totals')">📊 Performance Totals</button>
   <button id="btn-team-call"                   onclick="switchTeam('call')">📞 Call Team (11)</button>
   <button id="btn-team-support"                onclick="switchTeam('support')">🎧 Sales Support (15)</button>
   <button id="btn-team-hv"                     onclick="switchTeam('hv')">🏠 Home Visit (22)</button>
-  <button id="btn-team-competition"            onclick="switchTeam('competition')">🏆 Competition</button>
+  <button id="btn-team-competition" class="active" onclick="switchTeam('competition')">🏆 Competition</button>
 </div>
 
 <!-- ============================== PERFORMANCE TOTALS SECTION ============================== -->
-<div id="totalsSection">
+<div id="totalsSection" style="display:none">
 
 <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;flex-wrap:wrap">
   <div class="team-switch" id="timeSwitch">
@@ -534,7 +543,7 @@
 </div> <!-- end #hvTeam -->
 
 <!-- ============================== COMPETITION VIEW ============================== -->
-<div id="competitionSection" style="display:none">
+<div id="competitionSection">
   <div class="comp-frame">
     <div class="comp-header">
       <div class="comp-title">🏆 Team Competition</div>
@@ -657,7 +666,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 24, 2026 at 14:40 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 24, 2026 at 14:52 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -1439,7 +1448,7 @@ function updateSupWindowLabel() {
     el.textContent = `Month-to-Date: ${TOTALS.pace.month_start} → ${TOTALS.pace.today} (${TOTALS.pace.work_days_elapsed} work days)`;
   }
 }
-let currentTeam = "totals";   // "totals" | "call" | "support" | "hv"
+let currentTeam = "competition";   // "totals" | "call" | "support" | "hv" | "competition" (default on load)
 let currentProdView = "weekly";
 
 function switchTeam(which) {
@@ -1775,6 +1784,9 @@ function renderCompetition() {
     ["🎯 % of monthly target",  {big: callPct + "%",      sub: `€150K/AM · ${callFteSum.toFixed(1)} FTE`,raw: callPct},
                                  {na: true},
                                  {big: hvPct + "%",        sub: `€150K/AM · ${hvFteSum.toFixed(1)} FTE`, raw: hvPct}],
+    ["📅 Meetings Scheduled",   {na: true},
+                                 {big: fmt(sup.meetings),  sub: `${perAm(sup.meetings, sup.count)}/AM`,  raw: sup.meetings},
+                                 {na: true}],
     ["🏠 HVs Scheduled",        {na: true},
                                  {big: fmt(sup.hvs),       sub: `${perAm(sup.hvs, sup.count)}/AM`,       raw: sup.hvs},
                                  {na: true}],
@@ -1785,7 +1797,7 @@ function renderCompetition() {
     const vals = [c, s, h].filter(x => !x.na).map(x => x.raw);
     const maxVal = Math.max(...vals);
     const cell = (x) => {
-      if (x.na) return `<td class="comp-cell na"><span class="big">—</span></td>`;
+      if (x.na) return `<td class="comp-cell na"></td>`;
       const isWinner = (x.raw === maxVal && maxVal > 0 && vals.length > 1) ? " winner" : "";
       return `<td class="comp-cell${isWinner}"><span class="big">${x.big}</span><span class="sub">${x.sub}</span></td>`;
     };
@@ -3088,6 +3100,7 @@ renderAll();
 renderTotals();
 renderHvFilterBar();
 renderHvAll();
+renderCompetition();
 updateCallWindowLabel();
 updateSupWindowLabel();
 updateHvWindowLabel();
