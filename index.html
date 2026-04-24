@@ -170,7 +170,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 25 – April 23, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 24, 2026 at 08:23 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 24, 2026 at 09:31 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -411,6 +411,9 @@
 <h2>Weekly Home Visits Completed — per Representative <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(HOME_VISIT_JOB_STATUS = "Complete", attributed to current OWNER_EMAIL)</span></h2>
 <div class="chart-box full" style="margin-bottom:20px"><canvas id="hvMeetingsChart" style="max-height:420px"></canvas></div>
 
+<h2>Quote Flow — Sent vs Signed <span style="font-size:0.75rem;font-weight:400;color:var(--gray)">(daily totals across all selected AMs, window follows the 30d/MTD toggle above)</span></h2>
+<div class="chart-box full" style="margin-bottom:20px"><canvas id="hvQuoteFlowChart" style="max-height:420px"></canvas></div>
+
 <h2>Activity Heatmap — Calls + Completed Home Visits per Week</h2>
 <div class="caveat" style="margin:10px 0">
   Each cell = calls + completed home visits for that AM in that week. Darker green = more active. Row total on the right; column total on the bottom.
@@ -542,7 +545,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 24, 2026 at 08:23 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 24, 2026 at 09:31 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -2254,9 +2257,9 @@ function renderHvLeaderboards() {
   renderLeaderboard("hv-lb-avgdur",            rank("avgDurMin"),     v => v.toFixed(1),   "#2980b9");
 }
 
-let hvTrendChart, hvMeetingsChart, hvScatterChart, hvRateChart;
+let hvTrendChart, hvMeetingsChart, hvScatterChart, hvRateChart, hvQuoteFlowChart;
 function destroyHvCharts() {
-  [hvTrendChart, hvMeetingsChart, hvScatterChart, hvRateChart].forEach(c => { if (c) c.destroy(); });
+  [hvTrendChart, hvMeetingsChart, hvScatterChart, hvRateChart, hvQuoteFlowChart].forEach(c => { if (c) c.destroy(); });
 }
 function renderHvCharts() {
   destroyHvCharts();
@@ -2337,6 +2340,77 @@ function renderHvCharts() {
       plugins: { legend: {display:false} },
       scales: { x: { beginAtZero:true, title:{display:true, text:"% signed / created"} } }
     }
+  });
+
+  // ===== Quote Flow chart: daily sent vs signed across filtered HV AMs, scoped by 30d/MTD toggle =====
+  renderHvQuoteFlowChart(F);
+}
+
+function renderHvQuoteFlowChart(F) {
+  if (!TOTALS || !TOTALS.hv_daily) return;
+  const isMtd = hvTableWindow === "month";
+  const start = isMtd ? TOTALS.pace.month_start : TOTALS.pace.window_start;
+  const end   = TOTALS.pace.today;
+
+  const dates = [];
+  const d = new Date(start);
+  const endD = new Date(end);
+  while (d < endD) {
+    dates.push(d.toISOString().slice(0,10));
+    d.setDate(d.getDate() + 1);
+  }
+
+  const sentByDay = {}, signedByDay = {}, revenueByDay = {};
+  dates.forEach(day => { sentByDay[day] = 0; signedByDay[day] = 0; revenueByDay[day] = 0; });
+  F.forEach(p => {
+    const daily = TOTALS.hv_daily[p.name] || {};
+    for (const day in daily) {
+      if (day >= start && day < end) {
+        sentByDay[day]    += daily[day].sent_cnt   || 0;
+        signedByDay[day]  += daily[day].signed_cnt || 0;
+        revenueByDay[day] += daily[day].signed_val || 0;
+      }
+    }
+  });
+
+  const labels = dates.map(day => {
+    const dt = new Date(day);
+    return dt.toLocaleDateString("en-GB", {month: "short", day: "numeric"});
+  });
+  const sentSeries   = dates.map(d => sentByDay[d]);
+  const signedSeries = dates.map(d => signedByDay[d]);
+  const revSeries    = dates.map(d => Math.round(revenueByDay[d] / 1000));
+
+  hvQuoteFlowChart = new Chart(document.getElementById("hvQuoteFlowChart"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        { label: "Quotes Sent",                data: sentSeries,   borderColor: "#3498db", backgroundColor: "rgba(52,152,219,0.1)", tension: 0.3, pointRadius: 3, borderWidth: 2, fill: true, yAxisID: "y" },
+        { label: "Quotes Signed",              data: signedSeries, borderColor: "#27ae60", backgroundColor: "rgba(39,174,96,0.15)", tension: 0.3, pointRadius: 3, borderWidth: 2, fill: true, yAxisID: "y" },
+        { label: "Signed Revenue (€K ex-VAT)", data: revSeries,    borderColor: "#f39c12", backgroundColor: "rgba(243,156,18,0.08)", tension: 0.3, pointRadius: 2, borderWidth: 2, borderDash: [4,3], fill: false, yAxisID: "y1" },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top" },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed.y;
+              if (ctx.dataset.label.includes("Revenue")) return ` ${ctx.dataset.label}: €${v}K`;
+              return ` ${ctx.dataset.label}: ${v}`;
+            },
+          },
+        },
+      },
+      scales: {
+        y:  { beginAtZero: true, position: "left",  title: { display: true, text: "Quotes (count)" } },
+        y1: { beginAtZero: true, position: "right", title: { display: true, text: "Revenue (€K)" }, grid: { drawOnChartArea: false } },
+      },
+    },
   });
 }
 
