@@ -175,16 +175,16 @@
   .comp-table td.comp-cell.winner::before { content: "🥇 "; }
   .comp-table td.comp-cell.na .big { color: #7f8c8d; font-weight: 400; font-size: 1.2rem; }
 
-  /* Overall winner banner */
-  .comp-overall { display: grid; grid-template-columns: auto 1fr auto auto; gap: 16px; align-items: center; padding: 14px 22px; margin-bottom: 14px; border-radius: 10px; background: linear-gradient(90deg, rgba(241,196,15,0.18) 0%, rgba(241,196,15,0.05) 100%); border: 1px solid rgba(241,196,15,0.3); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-  .comp-overall-label { font-size: 0.85rem; color: #f1c40f; font-weight: 600; letter-spacing: 0.02em; }
-  .comp-overall-person { display: flex; flex-direction: column; line-height: 1.1; }
-  .comp-overall-name  { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.01em; }
-  .comp-overall-team-sub { font-size: 0.8rem; color: #a9b8c1; font-weight: 500; margin-top: 2px; }
-  .comp-overall-amount { font-size: 2rem; font-weight: 800; color: #f1c40f; }
-  .comp-overall-sub   { font-size: 0.85rem; color: #cfd9de; }
-  .comp-overall.overall-call { border-left: 6px solid #5dade2; }
-  .comp-overall.overall-hv   { border-left: 6px solid #bb8fce; }
+  /* Overall winner — two side-by-side podiums (Signed vs Converted) */
+  .comp-overall-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  .comp-podium { padding: 12px 16px; border-radius: 10px; background: linear-gradient(135deg, rgba(241,196,15,0.16) 0%, rgba(241,196,15,0.04) 100%); border: 1px solid rgba(241,196,15,0.3); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+  .comp-podium-title { font-size: 0.85rem; color: #f1c40f; font-weight: 700; letter-spacing: 0.03em; margin-bottom: 8px; text-transform: uppercase; }
+  .comp-podium-row { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+  .comp-podium-row:last-child { border-bottom: none; }
+  .comp-podium-rank { font-size: 1.1rem; font-weight: 700; text-align: center; }
+  .comp-podium-name { font-size: 1.05rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comp-podium-team { font-size: 0.75rem; color: #a9b8c1; white-space: nowrap; }
+  .comp-podium-amount { font-size: 1.25rem; font-weight: 800; color: #f1c40f; white-space: nowrap; }
 
   /* Top-5 cell */
   .comp-top5-spacer td { border-bottom: none !important; height: 4px; }
@@ -203,8 +203,11 @@
   body.tv-mode .comp-table td.comp-metric-label { font-size: 1.2rem; }
   body.tv-mode .comp-table td.comp-cell .big { font-size: 2.4rem; }
   body.tv-mode .comp-table td.comp-cell .sub { font-size: 1rem; }
-  body.tv-mode .comp-overall-name { font-size: 2.8rem; }
-  body.tv-mode .comp-overall-team-sub { font-size: 1.1rem; }
+  body.tv-mode .comp-podium-title  { font-size: 1rem; }
+  body.tv-mode .comp-podium-name   { font-size: 1.5rem; }
+  body.tv-mode .comp-podium-team   { font-size: 0.95rem; }
+  body.tv-mode .comp-podium-amount { font-size: 1.8rem; }
+  body.tv-mode .comp-podium-rank   { font-size: 1.5rem; }
   body.tv-mode .comp-overall-amount { font-size: 3rem; }
   body.tv-mode .comp-top5-row { font-size: 1.05rem; padding: 3px 0; }
 
@@ -231,7 +234,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 25 – April 23, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 24, 2026 at 14:07 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 24, 2026 at 14:40 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"  class="active" onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -654,7 +657,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 24, 2026 at 14:07 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 24, 2026 at 14:40 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -1706,10 +1709,10 @@ function renderCompetition() {
   const callPct = callFteSum > 0 ? Math.round(call.rev / (target * callFteSum) * 100) : 0;
   const hvPct   = hvFteSum   > 0 ? Math.round(hv.rev   / (target * hvFteSum)   * 100) : 0;
 
-  // ---- Overall winner: individual AM with highest (signed + converted) MTD revenue ----
-  // Supports Call + HV (Support team has no revenue attribution). Ties break by higher signed revenue.
-  const callPerPerson = callNames.map(n => {
-    const daily = TOTALS.call_daily[n] || {};
+  // ---- Overall top performers: two separate leaderboards (Signed / Converted), Call + HV combined ----
+  // Signed and converted are distinct metrics — don't add them. Top 3 for each.
+  const perPersonRev = (names, dailyBy, teamMeta) => names.map(n => {
+    const daily = dailyBy[n] || {};
     let signed = 0, conv = 0;
     for (const day in daily) {
       if (day >= monthStart && day < today) {
@@ -1717,33 +1720,36 @@ function renderCompetition() {
         conv   += (daily[day].conv_val   || 0);
       }
     }
-    return {name: n, team: "Call", icon: "📞", color: "#5dade2", cls: "overall-call", signed, conv, combined: signed + conv};
+    return {name: n, signed, conv, ...teamMeta};
   });
-  const hvPerPerson = hvNames.map(n => {
-    const daily = TOTALS.hv_daily[n] || {};
-    let signed = 0, conv = 0;
-    for (const day in daily) {
-      if (day >= monthStart && day < today) {
-        signed += (daily[day].signed_val || 0);
-        conv   += (daily[day].conv_val   || 0);
-      }
-    }
-    return {name: n, team: "HV", icon: "🏠", color: "#bb8fce", cls: "overall-hv", signed, conv, combined: signed + conv};
-  });
-  const winner = [...callPerPerson, ...hvPerPerson]
-    .sort((a,b) => (b.combined - a.combined) || (b.signed - a.signed))[0];
+  const allPeople = [
+    ...perPersonRev(callNames, TOTALS.call_daily, {team: "Call", icon: "📞", color: "#5dade2"}),
+    ...perPersonRev(hvNames,   TOTALS.hv_daily,   {team: "HV",   icon: "🏠", color: "#bb8fce"}),
+  ];
+  const topSigned = [...allPeople].sort((a,b) => b.signed - a.signed).slice(0,3);
+  const topConv   = [...allPeople].sort((a,b) => b.conv   - a.conv  ).slice(0,3);
+
+  const medals = ["🥇","🥈","🥉"];
+  const leaderboardHtml = (title, icon, rows, metric) => {
+    const items = rows.map((p, i) => `
+      <div class="comp-podium-row">
+        <span class="comp-podium-rank">${medals[i] || (i+1)+"."}</span>
+        <span class="comp-podium-name" style="color:${p.color}">${p.name}</span>
+        <span class="comp-podium-team">${p.icon} ${p.team}</span>
+        <span class="comp-podium-amount">${eurK(p[metric])}</span>
+      </div>`).join("");
+    return `
+      <div class="comp-podium">
+        <div class="comp-podium-title">${icon} ${title}</div>
+        ${items || '<div class="comp-top5-empty">—</div>'}
+      </div>`;
+  };
   const banner = document.getElementById("compOverallBanner");
-  if (banner && winner) {
-    banner.className = "comp-overall " + winner.cls;
-    banner.innerHTML = `
-      <div class="comp-overall-label">🏆 Overall winner (Signed + Converted MTD)</div>
-      <div class="comp-overall-person">
-        <div class="comp-overall-name" style="color:${winner.color}">${winner.name}</div>
-        <div class="comp-overall-team-sub">${winner.icon} ${winner.team} Team</div>
-      </div>
-      <div class="comp-overall-amount">${eurK(winner.combined)}</div>
-      <div class="comp-overall-sub">${eurK(winner.signed)} signed + ${eurK(winner.conv)} converted</div>
-    `;
+  if (banner) {
+    banner.className = "comp-overall-grid";
+    banner.innerHTML =
+      leaderboardHtml("Top 3 — Signed Revenue (MTD)",   "💰", topSigned, "signed") +
+      leaderboardHtml("Top 3 — Converted Revenue (MTD)","🔄", topConv,   "conv");
   }
 
   // ---- Metrics table rows ----
