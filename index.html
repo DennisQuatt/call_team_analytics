@@ -176,10 +176,10 @@
   .comp-table td.comp-cell.na .big { color: #7f8c8d; font-weight: 400; font-size: 1.2rem; }
 
   /* Overall winner — two side-by-side podiums (Signed vs Converted) */
-  .comp-overall-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  .comp-overall-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .comp-podium { padding: 12px 16px; border-radius: 10px; background: linear-gradient(135deg, rgba(241,196,15,0.16) 0%, rgba(241,196,15,0.04) 100%); border: 1px solid rgba(241,196,15,0.3); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
   .comp-podium-title { font-size: 0.85rem; color: #f1c40f; font-weight: 700; letter-spacing: 0.03em; margin-bottom: 8px; text-transform: uppercase; }
-  .comp-podium-row { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+  .comp-podium-row { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
   .comp-podium-row:last-child { border-bottom: none; }
   .comp-podium-rank { font-size: 1.1rem; font-weight: 700; text-align: center; }
   .comp-podium-name { font-size: 1.05rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -243,7 +243,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">March 25 – April 23, 2026 &nbsp;|&nbsp; 30-day window &nbsp;|&nbsp; 11 Call · 15 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 24, 2026 at 14:52 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: April 24, 2026 at 15:19 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"                 onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -666,7 +666,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated April 24, 2026 at 14:52 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated April 24, 2026 at 15:19 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -1659,16 +1659,6 @@ function renderCompetition() {
     }
     return tot;
   };
-  // Per-person MTD sum for any field — used for Top-5 sorting
-  const perPersonMtd = (dailyBy, names, field) => names.map(n => {
-    const daily = dailyBy[n] || {};
-    let tot = 0;
-    for (const day in daily) {
-      if (day >= monthStart && day < today) tot += (daily[day][field] || 0);
-    }
-    return {name: n, val: tot};
-  });
-
   const callNames = TOTALS.call_names || [];
   const supNames  = TOTALS.support_names || [];
   const hvNames   = TOTALS.hv_names || [];
@@ -1731,20 +1721,15 @@ function renderCompetition() {
     }
     return {name: n, signed, conv, ...teamMeta};
   });
-  const allPeople = [
-    ...perPersonRev(callNames, TOTALS.call_daily, {team: "Call", icon: "📞", color: "#5dade2"}),
-    ...perPersonRev(hvNames,   TOTALS.hv_daily,   {team: "HV",   icon: "🏠", color: "#bb8fce"}),
-  ];
-  const topSigned = [...allPeople].sort((a,b) => b.signed - a.signed).slice(0,3);
-  const topConv   = [...allPeople].sort((a,b) => b.conv   - a.conv  ).slice(0,3);
+  const callPeople = perPersonRev(callNames, TOTALS.call_daily, {team: "Call", icon: "📞", color: "#5dade2"});
+  const hvPeople   = perPersonRev(hvNames,   TOTALS.hv_daily,   {team: "HV",   icon: "🏠", color: "#bb8fce"});
 
   const medals = ["🥇","🥈","🥉"];
   const leaderboardHtml = (title, icon, rows, metric) => {
-    const items = rows.map((p, i) => `
+    const items = rows.slice(0,3).map((p, i) => `
       <div class="comp-podium-row">
         <span class="comp-podium-rank">${medals[i] || (i+1)+"."}</span>
         <span class="comp-podium-name" style="color:${p.color}">${p.name}</span>
-        <span class="comp-podium-team">${p.icon} ${p.team}</span>
         <span class="comp-podium-amount">${eurK(p[metric])}</span>
       </div>`).join("");
     return `
@@ -1757,8 +1742,10 @@ function renderCompetition() {
   if (banner) {
     banner.className = "comp-overall-grid";
     banner.innerHTML =
-      leaderboardHtml("Top 3 — Signed Revenue (MTD)",   "💰", topSigned, "signed") +
-      leaderboardHtml("Top 3 — Converted Revenue (MTD)","🔄", topConv,   "conv");
+      leaderboardHtml("📞 Call · Top 3 Signed (MTD)",    "💰", [...callPeople].sort((a,b) => b.signed - a.signed), "signed") +
+      leaderboardHtml("🏠 HV · Top 3 Signed (MTD)",      "💰", [...hvPeople  ].sort((a,b) => b.signed - a.signed), "signed") +
+      leaderboardHtml("📞 Call · Top 3 Converted (MTD)", "🔄", [...callPeople].sort((a,b) => b.conv   - a.conv  ), "conv") +
+      leaderboardHtml("🏠 HV · Top 3 Converted (MTD)",   "🔄", [...hvPeople  ].sort((a,b) => b.conv   - a.conv  ), "conv");
   }
 
   // ---- Metrics table rows ----
@@ -1804,43 +1791,7 @@ function renderCompetition() {
     return `<tr><td class="comp-metric-label">${label}</td>${cell(c)}${cell(s)}${cell(h)}</tr>`;
   }).join("");
 
-  // ---- Top 5 per team ----
-  // Call + HV ranked by MTD signed revenue. Support ranked by composite activity (calls + meetings + HVs).
-  const callTop5 = perPersonMtd(TOTALS.call_daily, callNames, "signed_val")
-    .sort((a,b) => b.val - a.val).slice(0,5);
-  const hvTop5 = perPersonMtd(TOTALS.hv_daily, hvNames, "signed_val")
-    .sort((a,b) => b.val - a.val).slice(0,5);
-  const supActivity = supNames.map(n => {
-    const daily = TOTALS.support_daily[n] || {};
-    let calls = 0, meetings = 0, hvs = 0;
-    for (const day in daily) {
-      if (day >= monthStart && day < today) {
-        calls    += (daily[day].calls || 0);
-        meetings += (daily[day].meetings || 0);
-        hvs      += (daily[day].hvs || 0);
-      }
-    }
-    return {name: n, val: calls + meetings + hvs, calls, meetings, hvs};
-  }).sort((a,b) => b.val - a.val).slice(0,5);
-
-  const top5Cell = (rows, fmt) => {
-    if (!rows.length) return `<td class="comp-top5-cell"><div class="comp-top5-empty">—</div></td>`;
-    const list = rows.map((r, i) => {
-      const medal = ["🥇","🥈","🥉","4.","5."][i] || `${i+1}.`;
-      return `<div class="comp-top5-row"><span class="comp-top5-rank">${medal}</span><span class="comp-top5-name">${r.name}</span><span class="comp-top5-val">${fmt(r)}</span></div>`;
-    }).join("");
-    return `<td class="comp-top5-cell">${list}</td>`;
-  };
-  const top5Row = `
-    <tr class="comp-top5-spacer"><td colspan="4"></td></tr>
-    <tr>
-      <td class="comp-metric-label">🥇 Top 5 (MTD)</td>
-      ${top5Cell(callTop5, r => "€" + Math.round(r.val/1000) + "K")}
-      ${top5Cell(supActivity, r => r.val + " activity")}
-      ${top5Cell(hvTop5, r => "€" + Math.round(r.val/1000) + "K")}
-    </tr>`;
-
-  document.getElementById("compTable").innerHTML = metricsHtml + top5Row;
+  document.getElementById("compTable").innerHTML = metricsHtml;
 }
 
 function renderTotals() {
