@@ -265,7 +265,7 @@
 
 <h1>Performance Dashboard</h1>
 <p class="subtitle">April 1 – April 30, 2026 &nbsp;|&nbsp; covers Last Month + MTD &nbsp;|&nbsp; 11 Call · 16 Support · 22 HV &nbsp;|&nbsp; Source: Aircall API (calls) + Snowflake DWH (deals + meetings)</p>
-<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: May 1, 2026 at 08:40 CET</p>
+<p style="display:inline-block;background:#eafaf1;color:#27ae60;padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;margin-bottom:25px">🕐 Last updated: May 1, 2026 at 09:14 CET</p>
 
 <div class="team-switch" role="tablist">
   <button id="btn-team-totals"                 onclick="switchTeam('totals')">📊 Performance Totals</button>
@@ -580,6 +580,10 @@
     <div class="comp-header">
       <div class="comp-title">🏆 Team Competition</div>
       <div class="comp-sub" id="compSub">Month-to-Date</div>
+      <div class="team-switch" id="compSwitch" style="margin-top:8px">
+        <button data-compwin="total"                onclick="switchCompetitionWindow('total')">Last Month</button>
+        <button data-compwin="month" class="active" onclick="switchCompetitionWindow('month')">Month-to-Date</button>
+      </div>
     </div>
     <div id="compOverallBanner" class="comp-overall"></div>
     <div class="comp-cols">
@@ -698,7 +702,7 @@
 </div> <!-- end #supportTeam -->
 
 <h2 style="margin-top:40px;color:var(--gray);font-size:0.9rem;border:none;text-align:center">
-  Last updated May 1, 2026 at 08:40 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
+  Last updated May 1, 2026 at 09:14 CET &nbsp;|&nbsp; Sources: Aircall API (calls) + Snowflake DWH.MARTS (deals + meetings)
 </h2>
 
 </div>
@@ -723,6 +727,11 @@ let sortDir = "desc";
 let callTableWindow = "month";  // default: MTD. values: "total" (= Last Month) | "month"
 
 const eur = v => v >= 1e6 ? "€" + (v/1e6).toFixed(1).replace(".", ",") + "M" : v >= 1e3 ? "€" + fmt(Math.round(v/1e3)) + "K" : "€" + Math.round(v);
+// Team-aggregate euro formatter — 3 decimals after the comma so big team totals
+// don't lose precision (e.g. €2,513M instead of €2,5M).
+const eur3 = v => v >= 1e6 ? "€" + (v/1e6).toFixed(3).replace(".", ",") + "M"
+                : v >= 1e3 ? "€" + (v/1e3).toFixed(3).replace(".", ",") + "K"
+                : "€" + Math.round(v);
 const fmt = v => v.toLocaleString();
 
 // Date bounds for the active toggle. "total" → previous full calendar month.
@@ -877,11 +886,11 @@ function renderKPIs() {
   document.getElementById("kpiCards").innerHTML = `
     <div class="card green"><div class="value">${fmt(t.calls)}</div><div class="label">Total Calls</div><div class="sub">${avgCallsDay}/day across ${n} AM${n===1?"":"s"}</div></div>
     <div class="card green"><div class="value">${fmt(t.talk)}</div><div class="label">Talk Minutes</div><div class="sub">${Math.round(t.talk/60)} total talk hours</div></div>
-    <div class="card blue"><div class="value">${t.sent}</div><div class="label">Quotes Sent</div><div class="sub">${eur(t.sentVal)} ex-VAT</div></div>
-    <div class="card green"><div class="value">${t.signed}</div><div class="label">Quotes Signed</div><div class="sub">${eur(t.signedVal)} ex-VAT</div></div>
-    <div class="card blue"><div class="value">${eur(t.convVal)}</div><div class="label">Converted Revenue</div><div class="sub">${t.conv} deals</div></div>
-    <div class="card yellow"><div class="value">${t.conv}</div><div class="label">Converted</div><div class="sub">${eur(t.convVal)} ex-VAT</div></div>
-    <div class="card blue"><div class="value">${eur(t.mtdSignedEx)}</div><div class="label">MTD Signed (April)</div><div class="sub">${eur(t.mtdSignedIncl)} incl. VAT</div></div>
+    <div class="card blue"><div class="value">${t.sent}</div><div class="label">Quotes Sent</div><div class="sub">${eur3(t.sentVal)} ex-VAT</div></div>
+    <div class="card green"><div class="value">${t.signed}</div><div class="label">Quotes Signed</div><div class="sub">${eur3(t.signedVal)} ex-VAT</div></div>
+    <div class="card blue"><div class="value">${eur3(t.convVal)}</div><div class="label">Converted Revenue</div><div class="sub">${t.conv} deals</div></div>
+    <div class="card yellow"><div class="value">${t.conv}</div><div class="label">Converted</div><div class="sub">${eur3(t.convVal)} ex-VAT</div></div>
+    <div class="card blue"><div class="value">${eur3(t.mtdSignedEx)}</div><div class="label">Window Signed</div><div class="sub">${eur3(t.mtdSignedIncl)} incl. VAT</div></div>
   `;
 }
 
@@ -1746,10 +1755,33 @@ function buildSupportPercentileCards(supAggByName, win) {
 }
 
 // ---------- Competition view: 3-team comparison in 16:9 ----------
+let competitionWindow = "month";  // "month" (MTD) or "total" (Last Month)
+
+function switchCompetitionWindow(which) {
+  competitionWindow = which;
+  document.querySelectorAll("#compSwitch button").forEach(b => {
+    b.classList.toggle("active", b.dataset.compwin === which);
+  });
+  renderCompetition();
+}
+
+function competitionBounds() {
+  const p = TOTALS.pace;
+  if (competitionWindow === "total") {
+    return {start: p.last_month_start, end: p.last_month_end, label: "Last Month",
+            sub: `Last Month · ${p.last_month_start} → ${p.last_month_end} (${p.last_month_work_days} working days)`,
+            tag: "Last Month"};
+  }
+  return {start: p.month_start, end: p.today, label: "Month-to-Date",
+          sub: `Month-to-Date · ${p.month_start} → ${p.today} · day ${p.days_elapsed_month}/${p.days_in_month}`,
+          tag: "MTD"};
+}
+
 function renderCompetition() {
   if (!TOTALS) return;
-  const monthStart = TOTALS.pace.month_start;
-  const today      = TOTALS.pace.today;
+  const wb = competitionBounds();
+  const monthStart = wb.start;
+  const today      = wb.end;
 
   const sumDailyInMonth = (dailyBy, names, field) => {
     let tot = 0;
@@ -1793,14 +1825,12 @@ function renderCompetition() {
     count:    hvNames.length,
   };
 
-  document.getElementById("compSub").textContent =
-    `Month-to-Date · ${TOTALS.pace.month_start} → ${TOTALS.pace.today} · day ${TOTALS.pace.days_elapsed_month}/${TOTALS.pace.days_in_month}`;
+  document.getElementById("compSub").textContent = wb.sub;
   document.getElementById("compCallCount").textContent = `${callNames.length} AMs`;
   document.getElementById("compSupCount").textContent  = `${supNames.length} AMs`;
   document.getElementById("compHvCount").textContent   = `${hvNames.length} AMs`;
 
   const fmt = v => v.toLocaleString();
-  const eurK = v => eur(v);
   const perAm = (val, n) => n > 0 ? (val / n).toFixed(1) : "0";
   const perAmK = (val, n) => n > 0 ? eur(val / n) : "€0";
 
@@ -1832,7 +1862,7 @@ function renderCompetition() {
       <div class="comp-podium-row">
         <span class="comp-podium-rank">${medals[i] || (i+1)+"."}</span>
         <span class="comp-podium-name" style="color:${p.color}">${p.name}</span>
-        <span class="comp-podium-amount">${eurK(p[metric])}</span>
+        <span class="comp-podium-amount">${eur(p[metric])}</span>
       </div>`).join("");
     return `
       <div class="comp-podium">
@@ -1844,10 +1874,10 @@ function renderCompetition() {
   if (banner) {
     banner.className = "comp-overall-grid";
     banner.innerHTML =
-      leaderboardHtml("📞 Call · Top 3 Signed (MTD)",    "💰", [...callPeople].sort((a,b) => b.signed - a.signed), "signed") +
-      leaderboardHtml("🏠 HV · Top 3 Signed (MTD)",      "💰", [...hvPeople  ].sort((a,b) => b.signed - a.signed), "signed") +
-      leaderboardHtml("📞 Call · Top 3 Converted (MTD)", "🔄", [...callPeople].sort((a,b) => b.conv   - a.conv  ), "conv") +
-      leaderboardHtml("🏠 HV · Top 3 Converted (MTD)",   "🔄", [...hvPeople  ].sort((a,b) => b.conv   - a.conv  ), "conv");
+      leaderboardHtml(`📞 Call · Top 3 Signed (${wb.tag})`,    "💰", [...callPeople].sort((a,b) => b.signed - a.signed), "signed") +
+      leaderboardHtml(`🏠 HV · Top 3 Signed (${wb.tag})`,      "💰", [...hvPeople  ].sort((a,b) => b.signed - a.signed), "signed") +
+      leaderboardHtml(`📞 Call · Top 3 Converted (${wb.tag})`, "🔄", [...callPeople].sort((a,b) => b.conv   - a.conv  ), "conv") +
+      leaderboardHtml(`🏠 HV · Top 3 Converted (${wb.tag})`,   "🔄", [...hvPeople  ].sort((a,b) => b.conv   - a.conv  ), "conv");
   }
 
   // ---- Metrics table rows ----
@@ -1864,12 +1894,12 @@ function renderCompetition() {
     ["✍️ Quotes Signed",        {big: fmt(call.signed),   sub: `${perAm(call.signed, call.count)}/AM`,  raw: call.signed},
                                  {na: true},
                                  {big: fmt(hv.signed),     sub: `${perAm(hv.signed, hv.count)}/AM`,      raw: hv.signed}],
-    ["💰 Signed Revenue",       {big: eurK(call.rev),     sub: `${perAmK(call.rev, call.count)}/AM`,    raw: call.rev},
+    ["💰 Signed Revenue",       {big: eur3(call.rev),     sub: `${perAmK(call.rev, call.count)}/AM`,    raw: call.rev},
                                  {na: true},
-                                 {big: eurK(hv.rev),       sub: `${perAmK(hv.rev, hv.count)}/AM`,        raw: hv.rev}],
-    ["🔄 Converted Revenue",    {big: eurK(call.conv_rev),sub: `${perAmK(call.conv_rev, call.count)}/AM`,raw: call.conv_rev},
+                                 {big: eur3(hv.rev),       sub: `${perAmK(hv.rev, hv.count)}/AM`,        raw: hv.rev}],
+    ["🔄 Converted Revenue",    {big: eur3(call.conv_rev),sub: `${perAmK(call.conv_rev, call.count)}/AM`,raw: call.conv_rev},
                                  {na: true},
-                                 {big: eurK(hv.conv_rev),  sub: `${perAmK(hv.conv_rev, hv.count)}/AM`,   raw: hv.conv_rev}],
+                                 {big: eur3(hv.conv_rev),  sub: `${perAmK(hv.conv_rev, hv.count)}/AM`,   raw: hv.conv_rev}],
     ["🎯 % of monthly target",  {big: callPct + "%",      sub: `€150K/AM · ${callFteSum.toFixed(1)} FTE`,raw: callPct},
                                  {na: true},
                                  {big: hvPct + "%",        sub: `€150K/AM · ${hvFteSum.toFixed(1)} FTE`, raw: hvPct}],
@@ -1953,16 +1983,16 @@ function renderTotals() {
     <div class="card green"><div class="value">${fmt(cTotals.calls)}</div><div class="label">Total Calls</div><div class="sub">${TOTALS.call_names.length} AMs</div></div>
     <div class="card blue"><div class="value">${fmt(cTotals.quotes_sent)}</div><div class="label">Quotes Sent</div><div class="sub">in window</div></div>
     <div class="card green"><div class="value">${fmt(cTotals.signed)}</div><div class="label">Quotes Signed</div><div class="sub">${cAvg}/AM</div></div>
-    <div class="card yellow"><div class="value">${eur(cTotals.signed_val)}</div><div class="label">Signed Revenue (ex-VAT)</div><div class="sub">${eur(cTotals.signed_val*1.21)} incl VAT</div></div>
-    <div class="card blue"><div class="value">${eur(cTotals.conv_val)}</div><div class="label">Converted Revenue (ex-VAT)</div><div class="sub">${cTotals.conv} converted deals</div></div>
+    <div class="card yellow"><div class="value">${eur3(cTotals.signed_val)}</div><div class="label">Signed Revenue (ex-VAT)</div><div class="sub">${eur3(cTotals.signed_val*1.21)} incl VAT</div></div>
+    <div class="card blue"><div class="value">${eur3(cTotals.conv_val)}</div><div class="label">Converted Revenue (ex-VAT)</div><div class="sub">${cTotals.conv} converted deals</div></div>
     ${qualCard(cTotals)}
   `;
   document.getElementById("totalsHvCards").innerHTML = `
     <div class="card green"><div class="value">${fmt(hvTotals.calls)}</div><div class="label">Total Calls</div><div class="sub">${(TOTALS.hv_names || []).length} AMs</div></div>
     <div class="card blue"><div class="value">${fmt(hvTotals.quotes_sent)}</div><div class="label">Quotes Sent</div><div class="sub">in window</div></div>
     <div class="card green"><div class="value">${fmt(hvTotals.signed)}</div><div class="label">Quotes Signed</div><div class="sub">${hvAvg}/AM</div></div>
-    <div class="card yellow"><div class="value">${eur(hvTotals.signed_val)}</div><div class="label">Signed Revenue (ex-VAT)</div><div class="sub">${eur(hvTotals.signed_val*1.21)} incl VAT</div></div>
-    <div class="card blue"><div class="value">${eur(hvTotals.conv_val)}</div><div class="label">Converted Revenue (ex-VAT)</div><div class="sub">${hvTotals.conv} converted deals</div></div>
+    <div class="card yellow"><div class="value">${eur3(hvTotals.signed_val)}</div><div class="label">Signed Revenue (ex-VAT)</div><div class="sub">${eur3(hvTotals.signed_val*1.21)} incl VAT</div></div>
+    <div class="card blue"><div class="value">${eur3(hvTotals.conv_val)}</div><div class="label">Converted Revenue (ex-VAT)</div><div class="sub">${hvTotals.conv} converted deals</div></div>
     ${qualCard(hvTotals)}
   `;
   document.getElementById("totalsSupportCards").innerHTML = `
@@ -2718,11 +2748,11 @@ function renderHvKPIs() {
   document.getElementById("hvKpiCards").innerHTML = `
     <div class="card green"><div class="value">${fmt(t.calls)}</div><div class="label">Total Calls</div><div class="sub">${avgCallsDay}/day across ${n} AM${n===1?"":"s"}</div></div>
     <div class="card green"><div class="value">${fmt(t.talk)}</div><div class="label">Talk Minutes</div><div class="sub">${Math.round(t.talk/60)} total talk hours</div></div>
-    <div class="card blue"><div class="value">${t.sent}</div><div class="label">Quotes Sent</div><div class="sub">${eur(t.sentVal)} ex-VAT</div></div>
-    <div class="card green"><div class="value">${t.signed}</div><div class="label">Quotes Signed</div><div class="sub">${eur(t.signedVal)} ex-VAT</div></div>
-    <div class="card blue"><div class="value">${eur(t.convVal)}</div><div class="label">Converted Revenue</div><div class="sub">${t.conv} deals</div></div>
-    <div class="card yellow"><div class="value">${t.conv}</div><div class="label">Converted</div><div class="sub">${eur(t.convVal)} ex-VAT</div></div>
-    <div class="card blue"><div class="value">${eur(t.mtdSignedEx)}</div><div class="label">MTD Signed (April)</div><div class="sub">${eur(t.mtdSignedIncl)} incl. VAT</div></div>
+    <div class="card blue"><div class="value">${t.sent}</div><div class="label">Quotes Sent</div><div class="sub">${eur3(t.sentVal)} ex-VAT</div></div>
+    <div class="card green"><div class="value">${t.signed}</div><div class="label">Quotes Signed</div><div class="sub">${eur3(t.signedVal)} ex-VAT</div></div>
+    <div class="card blue"><div class="value">${eur3(t.convVal)}</div><div class="label">Converted Revenue</div><div class="sub">${t.conv} deals</div></div>
+    <div class="card yellow"><div class="value">${t.conv}</div><div class="label">Converted</div><div class="sub">${eur3(t.convVal)} ex-VAT</div></div>
+    <div class="card blue"><div class="value">${eur3(t.mtdSignedEx)}</div><div class="label">Window Signed</div><div class="sub">${eur3(t.mtdSignedIncl)} incl. VAT</div></div>
   `;
 }
 
