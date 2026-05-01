@@ -1835,10 +1835,10 @@ function renderCompetition() {
   const isCelebration = competitionWindow === "total";
   const mtdView = document.getElementById("compMtdView");
   const celView = document.getElementById("compCelebrateView");
-  const banner  = document.getElementById("compOverallBanner");
+  const mtdBanner  = document.getElementById("compOverallBanner");
   if (mtdView) mtdView.style.display = isCelebration ? "none" : "";
   if (celView) celView.style.display = isCelebration ? "flex" : "none";
-  if (banner)  banner.style.display  = isCelebration ? "none" : "";
+  if (mtdBanner) mtdBanner.style.display = isCelebration ? "none" : "";
   if (isCelebration) { renderCompetitionCelebration(wb); return; }
   const monthStart = wb.start;
   const today      = wb.end;
